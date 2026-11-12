@@ -154,11 +154,28 @@ button{cursor:pointer}
 .ev .t small{display:block;font-weight:500;color:var(--ink-soft);font-size:12px}
 .ev button{border:0;background:transparent;color:var(--ink-faint);font-size:13px;font-weight:700;padding:4px 8px;border-radius:8px}
 .ev button:hover{background:rgba(212,88,60,.12);color:var(--coral)}
-#dayForm{display:flex;gap:8px}
-#dayForm input{border:1px solid var(--edge);background:#fff;border-radius:12px;padding:11px 12px;font-size:13.5px;outline:none}
-#dayForm input[type=time]{width:120px}
-#dayForm input[type=text]{flex:1;min-width:0}
-#dayForm button{border:0;background:#aeb9f0;color:var(--ink);border-radius:12px;padding:0 16px;font-weight:700;font-size:13px}
+#dayForm{display:flex;flex-direction:column;gap:10px}
+#dayForm input[type=text],#dayForm input[type=time],#dayForm input[type=date]{border:1px solid var(--edge);background:#fff;border-radius:12px;padding:10px 12px;font-size:13.5px;outline:none;min-height:44px;color:var(--ink);font-family:inherit}
+#dayForm input[type=time]{width:128px}
+#dayForm input[type=date]{width:160px}
+#dayForm .frow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#dayForm .frow[hidden]{display:none}
+#dayForm .fl{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--ink-soft)}
+#dayForm .tog{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;min-height:44px;margin-left:auto}
+#dayForm .tog input{position:absolute;opacity:0;width:1px;height:1px}
+#dayForm .tog .sw{width:40px;height:24px;border-radius:999px;background:rgba(34,37,92,.18);position:relative;transition:background .2s;flex:none}
+#dayForm .tog .sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+#dayForm .tog input:checked+.sw{background:#8e9be6}
+#dayForm .tog input:checked+.sw::after{transform:translateX(16px)}
+#dayForm .tog input:focus-visible+.sw{outline:2px solid #2f5f9e;outline-offset:2px}
+#dayForm .ferr{font-size:12.5px;font-weight:600;color:#a8452a;min-height:0}
+#dayForm .ferr:empty{display:none}
+#addBtn{border:0;background:#aeb9f0;color:var(--ink);border-radius:12px;min-height:44px;font-weight:700;font-size:13.5px}
+.bar{align-self:start;z-index:2;height:18px;margin:0 4px;padding:0 8px;border:0;border-radius:7px;font:700 11.5px/18px Manrope,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);text-align:left;box-shadow:inset 3px 0 0 var(--bar)}
+.bar:hover{filter:brightness(.97)}
+.bar.cont{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:0;box-shadow:none}
+.bar.more{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:0}
+.cell .lanes{flex:none}
 
 /* loader */
 #loader{position:absolute;inset:0;z-index:95;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:var(--mint);transition:opacity .9s ease,filter .9s ease}
@@ -250,9 +267,12 @@ button{cursor:pointer}
 .compact #upcoming{position:static;width:auto;height:auto;margin-top:16px}
 .compact #dayCard{width:calc(100vw - 24px);max-height:86vh;padding:22px 18px 18px}
 .compact #dayCard h2{font-size:28px;padding-right:40px}
-.compact #dayForm{flex-wrap:wrap}
-.compact #dayForm input[type=time]{width:110px}
-.compact #dayForm input[type=text]{min-width:140px}
+.compact #dayForm input[type=time]{width:116px}
+.compact #dayForm input[type=date]{width:150px}
+.compact #dayForm .tog{margin-left:0}
+.compact .bar{height:15px;font-size:9.5px;line-height:15px;padding:0 4px;margin:0 2px;border-radius:5px}
+.compact .bar.cont{margin-left:0}
+.compact .bar.more{margin-right:0}
 @media (max-width: 380px){.compact .navbtn{padding:11px 12px}}
 </style>
 </head>
@@ -324,9 +344,17 @@ button{cursor:pointer}
       <div class="wxline" id="dayWx"></div>
       <div id="dayList"></div>
       <form id="dayForm" autocomplete="off">
-        <input type="time" id="evTime" aria-label="Time (optional)">
         <input type="text" id="evTitle" placeholder="Add a plan…" aria-label="Plan title">
-        <button type="submit">Add</button>
+        <div class="frow">
+          <label class="fl">Start <input type="time" id="evTime" aria-label="Start time (optional)"></label>
+          <label class="tog"><input type="checkbox" id="evEndOn" role="switch"><span class="sw" aria-hidden="true"></span><span>End date &amp; time</span></label>
+        </div>
+        <div class="frow" id="endRow" hidden>
+          <label class="fl">Ends <input type="date" id="evEndDate" aria-label="End date"></label>
+          <input type="time" id="evEndTime" aria-label="End time (optional)">
+        </div>
+        <div class="ferr" id="formErr" role="alert"></div>
+        <button type="submit" id="addBtn">Add plan</button>
       </form>
     </div>
   </div>
@@ -441,13 +469,23 @@ const dataReady = (async () => {
 })();
 
 function sortEvents(){ state.events.sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))); }
-function byDate(){ /* live plans only */ const m = {}; for (const e of state.events) (m[e.date] ||= []).push(e); return m; }
+/* A plan may run over several days: date → endDate (inclusive). */
+const lastDay = e => e.endDate && e.endDate > e.date ? e.endDate : e.date;
+const isMulti = e => lastDay(e) !== e.date;
+const overlaps = (e, from, to) => e.date <= to && lastDay(e) >= from;
+const nextKey = k => { const d = parseISO(k); d.setDate(d.getDate() + 1); return iso(d.getFullYear(), d.getMonth(), d.getDate()); };
+function byDate(){ /* every day a plan covers → the plans on it */
+  const m = {};
+  for (const e of state.events) { const L = lastDay(e); for (let k = e.date, n = 0; k <= L && n < 400; k = nextKey(k), n++) (m[k] ||= []).push(e); }
+  return m;
+}
 function validDate(s){ if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return false; const d = parseISO(s); return iso(d.getFullYear(), d.getMonth(), d.getDate()) === s; }
 function normTime(t){ if (!t) return ''; const m = String(t).match(/^(\d{1,2}):(\d{2})/); if (!m) return ''; const h = +m[1], mi = +m[2]; return h < 24 && mi < 60 ? `${pad(h)}:${pad(mi)}` : ''; }
-function addEvent({ date, title, time = '', end = '', note = '' }){
+function addEvent({ date, title, time = '', end = '', endDate = '', note = '' }){
   if (!validDate(date)) throw new Error('date must be YYYY-MM-DD');
+  if (endDate && (!validDate(endDate) || endDate <= date)) endDate = '';
   title = String(title || '').trim().slice(0, 80) || 'Plan';
-  const ev = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date, title, time: normTime(time), end: normTime(time) ? normTime(end) : '', note: String(note || '').slice(0, 200), color: COLORS[state.events.length % COLORS.length], u: Date.now() };
+  const ev = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date, title, time: normTime(time), end: (normTime(time) || endDate) ? normTime(end) : '', endDate, note: String(note || '').slice(0, 200), color: COLORS[state.events.length % COLORS.length], u: Date.now() };
   state.events.push(ev); sortEvents(); save(); state.flash = date; renderAll(); return ev;
 }
 function updateEvent({ id, ...patch }){
@@ -455,6 +493,7 @@ function updateEvent({ id, ...patch }){
   if (patch.date != null) { if (!validDate(patch.date)) throw new Error('date must be YYYY-MM-DD'); ev.date = patch.date; }
   if (patch.time != null) ev.time = normTime(patch.time);
   if (patch.end != null) ev.end = normTime(patch.end);
+  if (patch.endDate != null) ev.endDate = patch.endDate && validDate(patch.endDate) && patch.endDate > ev.date ? patch.endDate : '';
   if (patch.title != null) ev.title = String(patch.title).slice(0, 80);
   if (patch.note != null) ev.note = String(patch.note).slice(0, 200);
   ev.u = Date.now();
@@ -504,7 +543,7 @@ function renderYear(){
   for (let m = 0; m < 12; m++) {
     const card = el('button', 'mini' + (now.getFullYear() === YEAR && now.getMonth() === m ? ' current' : ''));
     const glow = el('div', 'glow'); glow.style.background = GLOWS[m % GLOWS.length]; card.append(glow);
-    const count = state.events.filter(e => e.date.startsWith(`${YEAR}-${pad(m + 1)}`)).length;
+    const count = state.events.filter(e => overlaps(e, `${YEAR}-${pad(m + 1)}-01`, `${YEAR}-${pad(m + 1)}-31`)).length;
     const mh = el('div', 'mh'); mh.append(el('span', 'mn', MONTHS[m]), el('span', 'mc', count ? `${count} plan${count > 1 ? 's' : ''}` : '')); card.append(mh);
     const md = el('div', 'md');
     'SMTWTFS'.split('').forEach(c => md.append(el('span', 'wd', c)));
@@ -517,13 +556,13 @@ function renderYear(){
     g.append(card);
   }
   const ul = $('#upList'); ul.innerHTML = '';
-  const up = state.events.filter(e => e.date >= TODAY).slice(0, 10);
+  const up = state.events.filter(e => lastDay(e) >= TODAY).slice(0, 10);
   if (!up.length) ul.append(el('div', 'empty', 'Nothing planned yet. Open a month and tell Berry about your plans — "dinner with Mina on 11/12 at 7pm".'));
   for (const e of up) {
     const d = parseISO(e.date);
     const b = el('button', 'up');
     const dt = el('div', 'dt'); dt.append(el('small', null, MONTHS[d.getMonth()].slice(0, 3)), el('b', null, d.getDate()));
-    const tx = el('div', 'tx', e.title); tx.append(el('small', null, WD[d.getDay()] + (e.time ? ' · ' + spanText(e) : '')));
+    const tx = el('div', 'tx', e.title); tx.append(el('small', null, isMulti(e) ? rangeText(e) : WD[d.getDay()] + (e.time ? ' · ' + spanText(e) : '')));
     b.append(dt, tx);
     b.addEventListener('click', () => { go('month', d.getMonth(), d.getFullYear()); openDay(e.date); });
     ul.append(b);
@@ -541,23 +580,55 @@ function renderMonth(){
   const first = new Date(YEAR, m, 1).getDay(), dim = new Date(YEAR, m + 1, 0).getDate();
   const rows = Math.ceil((first + dim) / 7);
   g.style.gridTemplateRows = COMPACT ? `20px repeat(${rows}, minmax(64px, auto))` : `22px repeat(${rows}, 1fr)`;
-  WD.forEach(w => g.append(el('div', 'wdh', w)));
+  WD.forEach((w, i) => { const h = el('div', 'wdh', w); h.style.gridRow = 1; h.style.gridColumn = i + 1; g.append(h); });
   const maxChips = COMPACT ? 2 : rows === 6 ? 2 : 3;
+  const TOPH = COMPACT ? 29 : 35, LH = COMPACT ? 17 : 21, MAXL = 3;
+  // multi-day plans: one bar per week row, stacked in lanes
+  const weeks = [];
+  for (let w = 0; w < rows; w++) {
+    const ws = Math.max(1, w * 7 - first + 1), we = Math.min(dim, w * 7 - first + 7);
+    const wsK = iso(YEAR, m, ws), weK = iso(YEAR, m, we);
+    const segs = state.events.filter(e => isMulti(e) && overlaps(e, wsK, weK)).map(e => {
+      const s1 = e.date < wsK ? wsK : e.date, s2 = lastDay(e) > weK ? weK : lastDay(e);
+      return { e, s1, c1: (first + parseISO(s1).getDate() - 1) % 7, c2: (first + parseISO(s2).getDate() - 1) % 7, cont: e.date < wsK, more: lastDay(e) > weK };
+    }).sort((x, y) => x.c1 - y.c1 || (y.c2 - y.c1) - (x.c2 - x.c1));
+    const lanes = [];
+    segs.forEach(sg => { let L = lanes.findIndex(endCol => endCol < sg.c1); if (L < 0) { L = lanes.length; lanes.push(-1); } lanes[L] = sg.c2; sg.lane = L; });
+    weeks.push({ segs, n: Math.min(lanes.length, MAXL) });
+  }
   for (let i = 0; i < rows * 7; i++) {
-    const d = i - first + 1;
-    if (d < 1 || d > dim) { g.append(el('div', 'cell blank')); continue; }
+    const d = i - first + 1, row = Math.floor(i / 7), wk = weeks[row];
+    const place = node => { node.style.gridRow = row + 2; node.style.gridColumn = (i % 7) + 1; return node; };
+    if (d < 1 || d > dim) { g.append(place(el('div', 'cell blank'))); continue; }
     const k = iso(YEAR, m, d);
-    const c = el('button', 'cell' + (k === TODAY ? ' today' : '') + (state.flash === k ? ' flash' : ''));
+    const c = place(el('button', 'cell' + (k === TODAY ? ' today' : '') + (state.flash === k ? ' flash' : '')));
     const top = el('div', 'top'); top.append(el('span', 'num', d));
     const w = wxFor(k); if (w) { const wx = el('span', 'wx'); wx.append(sunEl('xs', w.cond), document.createTextNode(w.hi + '°')); top.append(wx); }
     c.append(top);
-    const evs = map[k] || [];
-    evs.slice(0, maxChips).forEach(e => { const ch = el('div', 'chip'); const dot = el('i'); dot.style.background = e.color; ch.append(dot); if (e.time) ch.append(el('em', null, fmtTime(e.time))); ch.append(el('span', null, e.title)); c.append(ch); });
-    if (evs.length > maxChips) c.append(el('div', 'more', `+${evs.length - maxChips} more`));
-    c.setAttribute('aria-label', `${longDate(k)}${evs.length ? `, ${evs.length} plans` : ''}`);
+    if (wk.n) { const sp = el('div', 'lanes'); sp.style.height = (wk.n * LH) + 'px'; c.append(sp); }
+    const all = map[k] || [], singles = all.filter(e => !isMulti(e));
+    const hiddenBars = wk.segs.filter(sg => sg.lane >= MAXL && sg.c1 <= i % 7 && sg.c2 >= i % 7).length;
+    const room = Math.max(wk.n ? 1 : 0, maxChips - Math.ceil(wk.n * (COMPACT ? 1 : 0.7)));
+    singles.slice(0, room).forEach(e => { const ch = el('div', 'chip'); const dot = el('i'); dot.style.background = e.color; ch.append(dot); if (e.time) ch.append(el('em', null, fmtTime(e.time))); ch.append(el('span', null, e.title)); c.append(ch); });
+    const extra = Math.max(0, singles.length - room) + hiddenBars;
+    if (extra) c.append(el('div', 'more', `+${extra} more`));
+    c.setAttribute('aria-label', `${longDate(k)}${all.length ? `, ${all.length} plans` : ''}`);
     c.addEventListener('click', () => openDay(k));
     g.append(c);
   }
+  weeks.forEach((wk, row) => wk.segs.forEach(sg => {
+    if (sg.lane >= MAXL) return;
+    const b = el('button', 'bar' + (sg.cont ? ' cont' : '') + (sg.more ? ' more' : ''));
+    b.type = 'button';
+    b.style.gridRow = row + 2; b.style.gridColumn = `${sg.c1 + 1} / ${sg.c2 + 2}`;
+    b.style.marginTop = (TOPH + sg.lane * LH) + 'px';
+    b.style.background = sg.e.color + '59';
+    b.style.setProperty('--bar', sg.e.color);
+    b.textContent = (!sg.cont && sg.e.time ? fmtTime(sg.e.time) + ' ' : '') + sg.e.title;
+    b.setAttribute('aria-label', `${sg.e.title}, ${rangeText(sg.e)}`);
+    b.addEventListener('click', ev => { ev.stopPropagation(); openDay(sg.s1); });
+    g.append(b);
+  }));
   state.flash = null;
 }
 $('#prevM').addEventListener('click', () => shiftMonth(-1));
@@ -590,17 +661,18 @@ function openDay(date){
   $('#dayTitle').textContent = longDate(date);
   const wx = $('#dayWx'); wx.innerHTML = '';
   const w = wxFor(date); if (w) { wx.append(sunEl('sm', w.cond), document.createTextNode(`${wxText(w)} · ${w.hi}° / ${w.lo}° · ${w.p}% chance of rain`)); }
+  resetDayForm(); $('#evEndDate').min = date;
   renderDayList();
   $('#modal').classList.add('open');
   setTimeout(() => $('#evTitle').focus(), 50);
 }
 function renderDayList(){
   const list = $('#dayList'); list.innerHTML = '';
-  const evs = state.events.filter(e => e.date === openDate);
+  const evs = byDate()[openDate] || [];
   if (!evs.length) list.append(el('div', 'empty', 'An empty day. Add a plan below.'));
   evs.forEach(e => {
     const r = el('div', 'ev'); const dot = el('i'); dot.style.background = e.color;
-    const t = el('div', 't', e.title); t.append(el('small', null, (e.time ? spanText(e) : 'Any time') + (e.note ? ' · ' + e.note : '')));
+    const t = el('div', 't', e.title); t.append(el('small', null, (isMulti(e) ? rangeText(e) : e.time ? spanText(e) : 'Any time') + (e.note ? ' · ' + e.note : '')));
     const del = el('button', null, 'Remove'); del.addEventListener('click', () => { deleteEvent(e.id); renderDayList(); });
     r.append(dot, t, del); list.append(r);
   });
@@ -608,9 +680,24 @@ function renderDayList(){
 function closeDay(){ $('#modal').classList.remove('open'); openDate = null; }
 $('#closeBtn').addEventListener('click', closeDay);
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeDay(); });
+function resetDayForm(){
+  $('#evTitle').value = ''; $('#evTime').value = ''; $('#evEndOn').checked = false; $('#endRow').hidden = true;
+  $('#evEndDate').value = ''; $('#evEndTime').value = ''; $('#formErr').textContent = '';
+}
+$('#evEndOn').addEventListener('change', () => {
+  const on = $('#evEndOn').checked; $('#endRow').hidden = !on;
+  if (on && openDate) { $('#evEndDate').min = openDate; if (!$('#evEndDate').value) $('#evEndDate').value = openDate; }
+});
 $('#dayForm').addEventListener('submit', e => {
-  e.preventDefault(); const title = $('#evTitle').value.trim(); if (!title || !openDate) return;
-  addEvent({ date: openDate, title, time: $('#evTime').value }); $('#evTitle').value = ''; $('#evTime').value = ''; renderDayList();
+  e.preventDefault(); const title = $('#evTitle').value.trim(); const err = $('#formErr'); err.textContent = '';
+  if (!openDate) return;
+  if (!title) { err.textContent = 'Give the plan a name.'; $('#evTitle').focus(); return; }
+  const on = $('#evEndOn').checked, time = $('#evTime').value;
+  let endDate = on ? $('#evEndDate').value : '', endT = on ? $('#evEndTime').value : '';
+  if (on && endDate && endDate < openDate) { err.textContent = 'The end date is before the start.'; return; }
+  if (on && (!endDate || endDate === openDate) && endT && time && endT <= time) { err.textContent = 'The end time is before the start time.'; return; }
+  addEvent({ date: openDate, title, time, end: endT, endDate: endDate > openDate ? endDate : '' });
+  resetDayForm(); renderDayList(); $('#evTitle').focus();
 });
 addEventListener('keydown', e => {
   if (e.key === 'Escape' && openDate) closeDay();
@@ -632,12 +719,12 @@ let samplePromise = null, sampleOff = false;
 function getSample(){ if (sampleOff || !window.claude || !claude.use) return Promise.resolve(null); return samplePromise ||= claude.use('sample').catch(() => null); }
 
 const TOOLS = [
-  { name: 'add_event', description: 'Add a plan to the calendar.', inputSchema: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD' }, title: { type: 'string', description: 'Short title, e.g. "Meet up with friend"' }, time: { type: 'string', description: 'Start, HH:MM 24h, or empty if unknown' }, end: { type: 'string', description: 'End, HH:MM 24h, or empty' }, note: { type: 'string' } }, required: ['date', 'title'] },
-    execute: i => { const ev = addEvent(i); jumpTo(ev.date); return { ok: true, event: ev }; } },
+  { name: 'add_event', description: 'Add a plan to the calendar.', inputSchema: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD' }, title: { type: 'string', description: 'Short title, e.g. "Meet up with friend"' }, time: { type: 'string', description: 'Start, HH:MM 24h, or empty if unknown' }, end: { type: 'string', description: 'End time, HH:MM 24h, or empty' }, end_date: { type: 'string', description: 'Last day for a plan that spans several days (YYYY-MM-DD), or empty' }, note: { type: 'string' } }, required: ['date', 'title'] },
+    execute: i => { const ev = addEvent({ ...i, endDate: i.end_date || '' }); jumpTo(ev.date); return { ok: true, event: ev }; } },
   { name: 'list_events', description: 'List calendar plans, optionally between two dates (inclusive).', inputSchema: { type: 'object', properties: { from: { type: 'string' }, to: { type: 'string' } } },
-    execute: ({ from = '0000', to = '9999' } = {}) => state.events.filter(e => e.date >= from && e.date <= to).slice(0, 60) },
-  { name: 'update_event', description: 'Change an existing plan by id (date, time, title or note).', inputSchema: { type: 'object', properties: { id: { type: 'string' }, date: { type: 'string' }, time: { type: 'string' }, end: { type: 'string' }, title: { type: 'string' }, note: { type: 'string' } }, required: ['id'] },
-    execute: i => { const ev = updateEvent(i); jumpTo(ev.date); return { ok: true, event: ev }; } },
+    execute: ({ from = '0000', to = '9999' } = {}) => state.events.filter(e => overlaps(e, from, to)).slice(0, 60) },
+  { name: 'update_event', description: 'Change an existing plan by id (date, time, title or note).', inputSchema: { type: 'object', properties: { id: { type: 'string' }, date: { type: 'string' }, time: { type: 'string' }, end: { type: 'string' }, end_date: { type: 'string' }, title: { type: 'string' }, note: { type: 'string' } }, required: ['id'] },
+    execute: i => { const ev = updateEvent({ ...i, ...(i.end_date != null ? { endDate: i.end_date } : {}) }); jumpTo(ev.date); return { ok: true, event: ev }; } },
   { name: 'delete_event', description: 'Delete a plan by id.', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
     execute: ({ id }) => ({ ok: true, deleted: deleteEvent(id) }) },
   { name: 'get_weather', description: 'Weather forecast for Seoul in °C (only covers the listed days).', inputSchema: { type: 'object', properties: {} },
@@ -654,8 +741,8 @@ Dates like "11/10" mean month/day. If no year is given, use the next time that d
 Leave time empty if the user didn't give one. Make titles short and natural (e.g. "Meet up with friend").
 For weather, call get_weather; if a date isn't covered, say the forecast doesn't reach that far yet.
 Reply in the user's language (Korean if they write Korean) in 1–3 short plain-text sentences, no markdown. For a repeating plan ("every Monday"), add each date with add_event. Confirm what you did with the weekday and date.
-Plans can have a start and end time ("2pm til 5pm" → time 14:00, end 17:00).
-Current plans (JSON): ${JSON.stringify(state.events.map(({ id, date, time, end, title }) => ({ id, date, time, end, title })))}`;
+Plans can have a start and end time ("2pm til 5pm" → time 14:00, end 17:00), and can span several days ("scholarship 11/8 to 11/30" → date 2026-11-08, end_date 2026-11-30; then end is the time on the last day).
+Current plans (JSON): ${JSON.stringify(state.events.map(({ id, date, time, end, endDate, title }) => ({ id, date, time, end, end_date: endDate || undefined, title })))}`;
 }
 
 let busy = false;
@@ -861,7 +948,7 @@ const STOP = new Set(['the','a','an','my','with','on','at','to','for','and','of'
 const words = s => (s.toLowerCase().match(/[a-z0-9가-힣]+/g) || []).filter(w => w.length > 1 && !STOP.has(w));
 function findPlan(query, date){
   const q = words(query); if (!q.length && !date) return { match: null, many: [] };
-  let pool = state.events.filter(e => !date || e.date === date);
+  let pool = state.events.filter(e => !date || (e.date <= date && lastDay(e) >= date));
   const scored = pool.map(e => { const tw = words(e.title); const sc = q.reduce((n, w) => n + (tw.some(x => x === w || x.startsWith(w) || w.startsWith(x)) ? 1 : 0), 0); return { e, sc }; })
     .filter(x => x.sc > 0 || (!q.length && date));
   if (!scored.length) return { match: null, many: [] };
@@ -874,8 +961,14 @@ function findPlan(query, date){
 
 const fmtShort = (k, ko) => { const d = parseISO(k); return ko ? `${d.getMonth() + 1}월 ${d.getDate()}일 (${KDOW[d.getDay()]})` : `${WD[d.getDay()]} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`; };
 const fmtTimeKo = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}시${m ? ' ' + m + '분' : ''}`; };
-const whenText = (e, ko) => fmtShort(e.date, ko) + (e.time ? (ko ? ' ' : ', ') + spanText(e, ko) : '');
-const listText = (evs, ko) => evs.map(e => `• ${fmtShort(e.date, ko)}${e.time ? ' ' + spanText(e, ko) : ''} — ${e.title}`).join('\n');
+// "Sun Nov 8, 9am → Mon Nov 30, 6pm" for plans that span days
+function rangeText(e, ko){
+  if (!isMulti(e)) return fmtShort(e.date, ko) + (e.time ? (ko ? ' ' : ', ') + spanText(e, ko) : '');
+  const t1 = e.time ? ' ' + (ko ? fmtTimeKo(e.time) : fmtTime(e.time)) : '', t2 = e.end ? ' ' + (ko ? fmtTimeKo(e.end) : fmtTime(e.end)) : '';
+  return `${fmtShort(e.date, ko)}${t1} ${ko ? '~' : '→'} ${fmtShort(lastDay(e), ko)}${t2}`;
+}
+const whenText = (e, ko) => rangeText(e, ko);
+const listText = (evs, ko) => evs.map(e => `• ${isMulti(e) ? rangeText(e, ko) : fmtShort(e.date, ko) + (e.time ? ' ' + spanText(e, ko) : '')} — ${e.title}`).join('\n');
 
 function rangeFor(s){
   const t = today0(), mon = addDays(t, -((t.getDay() + 6) % 7));
@@ -934,6 +1027,7 @@ function localAgent(text){
     if (!nd.date && !nt.time) return T(`When should "${match.title}" move to? Try "move ${match.title.toLowerCase()} to 12/8".`, `${eul(match.title)} 언제로 옮길까요?`);
     const nr = nt.time ? rangeIn(toPart) : null;
     let newEnd; if (nt.time && match.time && match.end && !nr) { const dur = (+match.end.slice(0, 2) * 60 + +match.end.slice(3)) - (+match.time.slice(0, 2) * 60 + +match.time.slice(3)); const st = +nt.time.slice(0, 2) * 60 + +nt.time.slice(3) + dur; newEnd = st < 1440 ? `${pad(Math.floor(st / 60))}:${pad(st % 60)}` : ''; }
+    if (nd.date && isMulti(match)) { const len = Math.round((parseISO(lastDay(match)) - parseISO(match.date)) / 864e5); const e2 = parseISO(nd.date); e2.setDate(e2.getDate() + len); match.endDate = iso(e2.getFullYear(), e2.getMonth(), e2.getDate()); }
     updateEvent({ id: match.id, ...(nd.date ? { date: nd.date } : {}), ...(nr ? { time: nr.time, end: nr.end } : nt.time ? { time: nt.time, ...(newEnd != null ? { end: newEnd } : {}) } : {}) });
     jumpTo(match.date);
     return T(`Moved "${match.title}" to ${whenText(match)}.`, `${eul(match.title)} ${ro(whenText(match, true))} 옮겼어요.`);
@@ -950,7 +1044,7 @@ function localAgent(text){
     const r = rangeFor(raw); let from, to, label;
     if (r) { [from, to] = r; label = T(r[2], r[3]); }
     else { const { date } = takeDate(raw); if (date) { from = to = date; label = fmtShort(date, ko); } else { from = TODAY; to = isoD(addDays(today0(), 7)); label = T('the next 7 days', '앞으로 7일'); } }
-    const evs = state.events.filter(e => e.date >= from && e.date <= to);
+    const evs = state.events.filter(e => overlaps(e, from, to));
     if (!evs.length) return T(`Nothing planned for ${label}.`, `${label}에는 일정이 없어요.`);
     return T(`Here's ${label}:\n`, `${label} 일정:\n`) + listText(evs, ko);
   }
@@ -979,6 +1073,31 @@ function localAgent(text){
     const sched = rep.days.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(d => { const t = rep.perDay[d] || shared; const s2 = spanText({ time: t.time, end: t.end }, ko); return ko ? `${KDOW[d]}요일${s2 ? ' ' + s2 : ''}` : `${DOW[d][0].toUpperCase() + DOW[d].slice(1, 3)}${s2 ? ' ' + s2 : ''}`; }).join(ko ? ', ' : ' · ');
     return T(`Added "${title}" — ${sched} — ${n} plans from ${fmtShort(firstAdded)} to ${fmtShort(lastAdded)}.${u.until ? '' : ' Say "until 2/28" to set when it ends.'}`,
              `"${title}" 일정을 추가했어요 — ${sched} — ${fmtShort(firstAdded, true)}부터 ${fmtShort(lastAdded, true)}까지 ${n}개.`);
+  }
+  // a plan over several days: "11/8 to 11/30", "from Nov 8 until Nov 30", "11월 8일부터 30일까지"
+  {
+    const a = oneDate(u.rest);
+    if (a.date) {
+      let rest = u.rest.replace(a.m[0], ' '), endDate = '';
+      if (u.until && u.until > a.date) endDate = u.until;
+      else if (/(?:^|\s)(?:-|–|—|~)(?:\s|$)|\d\s*(?:-|–|—|~)\s*\d|\b(to|till?|until|through|thru)\b|부터|까지|~/i.test(u.rest)) {
+        const b = oneDate(rest);
+        if (b.date) {
+          let e2 = b.date;
+          if (/^(?:on\s+)?(?:the\s+)?\d{1,2}(?:st|nd|rd|th|일)?$/i.test(b.m[0].trim())) {       // "30일" / "the 30th": same month as the start
+            const sd = parseISO(a.date), day = +b.m[0].match(/\d{1,2}/)[0];
+            e2 = iso(sd.getFullYear(), sd.getMonth(), day); if (e2 <= a.date) { const n = new Date(sd.getFullYear(), sd.getMonth() + 1, day); e2 = iso(n.getFullYear(), n.getMonth(), n.getDate()); }
+          }
+          if (validDate(e2) && e2 > a.date) { endDate = e2; rest = rest.replace(b.m[0], ' '); }
+        }
+      }
+      if (endDate) {
+        const t1 = takeTime(rest), t2 = takeTime(t1.rest);
+        const title = cleanTitle(t2.rest.replace(/(?:^|\s)(?:-|–|—|~)+(?=\s|$)|\b(from|to|till?|until|through|thru)\b|부터|까지/gi, ' ')) || T('Plan', '일정');
+        const ev = addEvent({ date: a.date, title, time: t1.time, end: t2.time, endDate }); jumpTo(ev.date);
+        return T(`Added "${ev.title}": ${rangeText(ev)}.`, `"${ev.title}" 일정을 추가했어요: ${rangeText(ev, true)}.`);
+      }
+    }
   }
   const d = takeDate(u.rest);
   if (!d.date) return T("I couldn't spot a date in that. Try \"dinner with Mina on 12/5 at 7pm\" or \"work every Monday 2pm–5pm until 12/21\".", '날짜를 못 찾았어요. "12월 5일 저녁 7시 민아랑 저녁"이나 "매주 월요일 오후 2시부터 5시까지 근무"처럼 말해 주세요.');
@@ -1069,16 +1188,16 @@ function renderSync(err){
       <p>Your plans are saved to a private Gist in your own GitHub account, so your Mac and phone always match — the same way myPlanner syncs.</p>
       <ol>
         <li><a href="https://github.com/settings/tokens/new?scopes=gist&description=Blueberry%20Planner%20sync" target="_blank" rel="noopener">Create a GitHub token</a> (classic) with only the <b>gist</b> box ticked.</li>
-        <li>Paste it here. On your phone, use “Copy setup link” afterwards instead of pasting again.</li>
+        <li>Paste it here — or paste a <b>setup link</b> copied from a device that’s already synced.</li>
       </ol>
-      <input type="password" id="tokIn" placeholder="ghp_…" autocomplete="off" spellcheck="false" aria-label="GitHub token">
+      <input type="password" id="tokIn" placeholder="ghp_… or setup link" autocomplete="off" spellcheck="false" aria-label="GitHub token or setup link">
       ${err ? `<div class="err">${esc(err)}</div>` : ''}
       <div class="row"><button class="pbtn" data-x="close" type="button">Not now</button><button class="pbtn primary" data-x="connect" type="button">Connect</button></div>`);
     setTimeout(() => { const i = $('#tokIn'); i && i.focus(); }, 60);
   } else {
     openSheet(`<div class="eyebrow">Sync</div><h2>Sync is on</h2>
       <p class="okline"><i data-s="${syncState === 'ok' ? 'ok' : 'err'}"></i><span><b>${esc(cfg.login || 'GitHub')}</b> · private gist${cfg.fromMyPlanner ? ' · using your myPlanner token' : ''}<br><small>${syncState === 'ok' ? 'Last synced ' + ago(lastSync) : syncState === 'auth' ? 'The token was rejected. Disconnect and paste a new one.' : 'Waiting for a connection'}</small></span></p>
-      <p><b>Add your phone:</b> copy the setup link, send it to yourself (AirDrop or KakaoTalk), open it on the phone, then install the app from there.</p>
+      <p><b>Add your phone:</b> copy the setup link and send it to yourself (AirDrop, Notes or KakaoTalk). On the phone, open the installed app → <b>Sync</b> → paste the link → Connect.</p>
       <div class="warn">The setup link contains your token. Only open it on your own devices and never post it anywhere.</div>
       ${err ? `<div class="err">${esc(err)}</div>` : ''}
       <div class="row"><button class="pbtn" data-x="off" type="button">Disconnect</button><button class="pbtn" data-x="now" type="button">Sync now</button>${navigator.share ? '<button class="pbtn" data-x="share" type="button">Share link</button>' : ''}<button class="pbtn primary" data-x="copy" type="button">Copy setup link</button></div>
@@ -1099,10 +1218,12 @@ $('#sheet').addEventListener('click', async e => {
   if (a === 'close') closeSheet();
   if (a === 'install' && installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch (err) {} installEvt = null; closeSheet(); updateInstallBtn(); }
   if (a === 'connect') {
-    const tok = ($('#tokIn').value || '').trim(); if (!tok) return renderSync('Paste the token first.');
+    let tok = ($('#tokIn').value || '').trim(), gist = null; if (!tok) return renderSync('Paste the token or setup link first.');
+    // a setup link from another device works too
+    const lm = tok.match(/#sync=([\w-]+)/); if (lm) { try { const o = JSON.parse(b64d(lm[1])); tok = o.t || ''; gist = o.g || null; } catch (err) { return renderSync('That setup link looks incomplete. Copy it again.'); } }
     x.disabled = true; x.textContent = 'Connecting…';
-    cfg = { token: tok };
-    try { const u = await gh('/user'); cfg.login = u.login; cfg.gist = await findOrCreate(); saveCfg(); await syncNow(); renderSync(); toast('Sync connected'); }
+    cfg = { token: tok, gist };
+    try { const u = await gh('/user'); cfg.login = u.login; if (!cfg.gist) cfg.gist = await findOrCreate(); saveCfg(); await syncNow(); renderSync(); toast('Sync connected'); }
     catch (err) { cfg = null; renderSync(err.status === 401 ? 'GitHub rejected that token. Check you copied all of it.' : err.status === 403 || err.status === 404 ? 'That token can’t create gists. Make sure the “gist” box is ticked.' : 'Couldn’t reach GitHub. Check your connection and try again.'); }
   }
   if (a === 'now') { await syncNow(); renderSync(); }

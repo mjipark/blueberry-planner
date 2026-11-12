@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A soft-focus personal planner for 2026–2027 with an AI helper, weather and sync.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#d3dddb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Blueberry">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Blueberry Planner 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,8 +49,8 @@ button{cursor:pointer}
 .title-xl{font-family:Fraunces,serif;font-weight:400;letter-spacing:-2px;margin:0;line-height:.9}
 
 /* year */
-#yearHead{position:absolute;left:44px;top:96px}
-#yearHead .title-xl{font-size:118px}
+#yearHead{position:absolute;left:44px;top:88px}
+#yearHead .title-xl{font-size:100px}
 #yearHead p{margin:10px 0 0 4px;font-family:Fraunces,serif;font-style:italic;color:var(--ink-soft);font-size:17px}
 #yearGrid{position:absolute;left:44px;top:262px;width:1020px;height:604px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:16px}
 .mini{position:relative;text-align:left;padding:14px 16px 12px;border-radius:22px;border:1px solid var(--edge);background:var(--paper);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);overflow:hidden;transition:transform .35s,background .35s}
@@ -161,6 +170,90 @@ button{cursor:pointer}
 #loader .ldPct{font-size:11px;font-weight:700;letter-spacing:1.6px;color:var(--ink-faint)}
 @keyframes ldspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){#loader svg{animation:none}}
+
+/* brand icon, year switch, sync + install, sheet, toast */
+#brand{display:flex;align-items:center;gap:10px}
+#brandIcon{width:30px;height:30px;border-radius:8px;flex:none}
+.ysws{display:inline-flex;gap:6px;margin:8px 0 0 2px;padding:5px;border-radius:999px;background:rgba(255,255,255,.34);border:1px solid var(--edge)}
+.ysw{border:0;background:transparent;padding:8px 18px;border-radius:999px;font-weight:700;font-size:13px;color:var(--ink-soft);min-height:36px}
+.ysw:hover{background:rgba(255,255,255,.55);color:var(--ink)}
+.ysw.on{background:#b9c3f3;color:var(--ink)}
+.syncbtn{display:inline-flex;align-items:center;gap:7px}
+.syncbtn i{width:8px;height:8px;border-radius:50%;background:#9aa0b8}
+.syncbtn[data-s="ok"] i{background:#5fae86}
+.syncbtn[data-s="busy"] i{background:#7f9bd0;animation:pulse 1s ease-in-out infinite}
+.syncbtn[data-s="err"] i{background:#d9734f}
+.syncbtn[data-s="net"] i{background:#c9a24a}
+@keyframes pulse{50%{opacity:.35}}
+#sheet{position:absolute;inset:0;z-index:85;display:none;place-items:center;background:rgba(34,37,92,.16);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#sheet.open{display:grid}
+#sheetBody{width:500px;max-width:calc(100% - 24px);max-height:86%;overflow:auto;padding:26px;background:rgba(240,246,242,.92)}
+#sheetBody h2{font-family:Fraunces,serif;font-weight:400;font-size:30px;margin:4px 0 10px}
+#sheetBody p,#sheetBody li{font-size:14px;line-height:1.55;color:var(--ink)}
+#sheetBody ol{padding-left:20px;margin:8px 0 14px}
+#sheetBody a{color:#2f5f9e;font-weight:600}
+#sheetBody input{width:100%;border:1px solid var(--edge);background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;outline:none;margin:4px 0 10px}
+#sheetBody .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px}
+.pbtn{border:1px solid var(--edge);background:rgba(255,255,255,.7);border-radius:12px;padding:10px 16px;min-height:44px;font-weight:700;font-size:13px}
+.pbtn.primary{background:#aeb9f0;border-color:#aeb9f0}
+.pbtn:disabled{opacity:.6}
+#sheetBody .err{color:#a8452a;font-size:13px;font-weight:600;margin-top:4px}
+#sheetBody .warn{font-size:12.5px;line-height:1.5;padding:10px 12px;border-radius:12px;background:rgba(201,162,74,.16);color:#6a5220}
+#sheetBody .okline{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.6)}
+#sheetBody .okline i{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none;background:#5fae86}
+#sheetBody .okline i[data-s="err"]{background:#d9734f}
+#sheetBody small{color:var(--ink-soft)}
+#toast{position:absolute;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;z-index:96;padding:11px 18px;border-radius:999px;background:var(--ink);color:#eef2fb;font-size:13px;font-weight:600;transition:opacity .3s,transform .3s;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+/* weather icons by condition */
+.sun.cloudy{background:radial-gradient(circle at 40% 38%,#ffffff 0%,#e3e8ef 50%,#b9c2cf 100%)}
+.sun.rain{background:radial-gradient(circle at 40% 38%,#e6f0ff 0%,#9fbbe6 50%,#6d8fc7 100%)}
+.sun.snow{background:radial-gradient(circle at 40% 38%,#ffffff 0%,#f1f5fb 60%,#d4dde9 100%)}
+
+/* ===== phone layout ===== */
+.compact,.compact body{height:auto;overflow:auto}
+.compact body{min-height:100vh;background:var(--mint)}
+.compact #stage{position:relative;left:auto;top:auto;width:100%;height:auto;min-height:100vh;transform:none;overflow:visible;box-sizing:border-box;padding:calc(env(safe-area-inset-top) + 16px) 14px calc(env(safe-area-inset-bottom) + 96px)}
+.compact .grain{position:fixed}
+.compact #loader,.compact #modal,.compact #sheet{position:fixed}
+.compact #toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 92px)}
+.compact #brand{position:static;font-size:18px;margin:0 2px 14px}
+.compact #nav{position:fixed;left:50%;right:auto;top:auto;bottom:calc(env(safe-area-inset-bottom) + 14px);transform:translateX(-50%);z-index:70;box-shadow:0 8px 24px rgba(34,37,92,.12)}
+.compact .navbtn{padding:11px 16px;min-height:44px}
+.compact .page{position:static;display:none;opacity:1;visibility:visible;filter:none;transform:none;transition:none}
+.compact .page.active{display:block}
+.compact #monthHead{position:static;width:auto;margin-bottom:12px;align-items:center}
+.compact #monthHead .title-xl{font-size:44px;letter-spacing:-1px}
+.compact #monthHead .yr{font-size:17px;margin-left:8px}
+.compact .arrows{margin:0}
+.compact #monthGrid{position:static;width:auto;height:auto;gap:4px}
+.compact #monthGrid .wdh{padding:0 3px;font-size:9.5px;letter-spacing:.5px}
+.compact .cell{padding:5px 5px 6px;border-radius:12px;gap:2px;min-height:64px}
+.compact .cell .top{height:22px}
+.compact .cell .num{font-size:12.5px;width:22px;height:22px}
+.compact .cell .wx{font-size:0;gap:0}
+.compact .chip{font-size:9.5px;padding:2px 3px;gap:3px;border-radius:6px}
+.compact .chip i{width:5px;height:5px}
+.compact .chip em{display:none}
+.compact .more{font-size:9.5px;padding-left:2px}
+.compact #side{position:static;width:auto;height:auto;margin-top:16px}
+.compact #chat{flex:none;height:460px}
+.compact #weather .temp{font-size:44px}
+.compact #weather .sun.big{width:48px;height:48px}
+.compact #yearHead{position:static;margin-bottom:16px}
+.compact #yearHead .title-xl{font-size:76px}
+.compact #yearGrid{position:static;width:auto;height:auto;grid-template-columns:repeat(2,1fr);grid-template-rows:none;gap:10px}
+.compact .mini{padding:10px 10px 8px;border-radius:18px}
+.compact .mini .mn{font-size:17px}
+.compact .mini .md span{height:18px;line-height:18px;font-size:9.5px}
+.compact .mini .md .has::before{width:16px;height:16px;margin:-8px 0 0 -8px}
+.compact #upcoming{position:static;width:auto;height:auto;margin-top:16px}
+.compact #dayCard{width:calc(100vw - 24px);max-height:86vh;padding:22px 18px 18px}
+.compact #dayCard h2{font-size:28px;padding-right:40px}
+.compact #dayForm{flex-wrap:wrap}
+.compact #dayForm input[type=time]{width:110px}
+.compact #dayForm input[type=text]{min-width:140px}
+@media (max-width: 380px){.compact .navbtn{padding:11px 12px}}
 </style>
 </head>
 <body>
@@ -178,17 +271,21 @@ button{cursor:pointer}
     <div class="ldTxt" id="ldTxt">opening your planner…</div>
     <div class="ldPct" id="ldPct">0%</div>
   </div>
-  <div id="brand"><b>Blueberry</b> planner · 2026</div>
+  <div id="brand"><img id="brandIcon" alt="" width="30" height="30"><span><b>Blueberry</b> planner · 2026–27</span></div>
   <nav id="nav">
     <button class="navbtn" data-go="year">Year</button>
     <button class="navbtn" data-go="month">Month</button>
+    <button class="navbtn syncbtn" id="syncBtn" type="button" data-s="off" hidden><i></i><span>Sync</span></button>
+    <button class="navbtn" id="installBtn" type="button" hidden>Install</button>
   </nav>
 
   <!-- COVER -->
 
   <!-- YEAR -->
   <section id="page-year" class="page">
-    <div id="yearHead"><h1 class="title-xl">2026</h1><p>twelve months, gently out of focus</p></div>
+    <div id="yearHead"><h1 class="title-xl" id="yTitle">2026</h1>
+      <div class="ysws" role="group" aria-label="Choose year"><button class="ysw" data-y="2026" type="button">2026</button><button class="ysw" data-y="2027" type="button">2027</button></div>
+    </div>
     <div id="yearGrid"></div>
     <aside id="upcoming" class="card">
       <div class="eyebrow">Coming up</div>
@@ -211,7 +308,7 @@ button{cursor:pointer}
         <div id="msgs"></div>
         <div id="chips"></div>
         <form id="chatForm" autocomplete="off">
-          <input id="chatInput" placeholder="e.g. I have a meet up with my friend on 11/10" aria-label="Message the assistant">
+          <input id="chatInput" placeholder="e.g. I have a meet up with my friend on 12/5" aria-label="Message the assistant">
           <button id="sendBtn" type="submit">Send</button>
         </form>
       </div>
@@ -234,12 +331,15 @@ button{cursor:pointer}
     </div>
   </div>
 
+  <div id="sheet"><div class="card" id="sheetBody" role="dialog" aria-modal="true"></div></div>
+  <div id="toast" role="status" aria-live="polite"></div>
   <div class="grain"></div>
 </div>
 
 <script>
 (() => {
-const W = 1440, H = 900, YEAR = 2026;
+const W = 1440, H = 900, YEARS = [2026, 2027];
+document.getElementById('brandIcon').src = 'data:image/png;base64,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';
 const $ = s => document.querySelector(s);
 const stage = $('#stage');
 const T0 = performance.now();
@@ -251,8 +351,14 @@ function loadStep(pct, txt){
   if (txt) document.getElementById('ldTxt').textContent = txt;
 }
 requestAnimationFrame(() => loadStep(12, 'opening your planner…'));
-let SCALE = 1;
-function fit(){ SCALE = Math.min(innerWidth / W, innerHeight / H); stage.style.setProperty('--s', SCALE); }
+let SCALE = 1, COMPACT = false, booted = false;
+// phones (and very small windows) get a stacked, scrollable layout instead of the scaled landscape stage
+function fit(){
+  const c = innerWidth < 760 || (innerHeight < 520 && innerWidth < 1000);
+  document.documentElement.classList.toggle('compact', c);
+  SCALE = c ? 1 : Math.min(innerWidth / W, innerHeight / H); stage.style.setProperty('--s', SCALE);
+  if (c !== COMPACT) { COMPACT = c; if (booted) renderAll(); }
+}
 addEventListener('resize', fit); fit();
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -267,7 +373,7 @@ const fmtTime = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number
 const longDate = s => { const d = parseISO(s); return `${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`; };
 
 /* Weather snapshot — Seoul, fetched 2026-11-12 (°C). The page cannot reach weather services live. */
-const WEATHER = { city: 'Seoul', asOf: 'Nov 12, 2026', current: { t: 13, text: 'Clear', cond: 'clear' },
+let WEATHER = { city: 'Seoul', asOf: 'Nov 12, 2026', current: { t: 13, text: 'Clear', cond: 'clear' },
   days: [
     { d:'2026-11-12', hi:16, lo:9,  cond:'clear', p:0 }, { d:'2026-11-13', hi:18, lo:9,  cond:'clear', p:0 },
     { d:'2026-11-14', hi:14, lo:10, cond:'clear', p:0 }, { d:'2026-11-15', hi:16, lo:9,  cond:'clear', p:0 },
@@ -278,22 +384,44 @@ const wxFor = date => WEATHER.days.find(x => x.d === date);
 /* ---------- state + persistence ---------- */
 const COLORS = ['#8e9be6','#b39ce6','#86b8cf','#e6a3c0','#93c4a2','#efb38f'];
 const LS = 'bb-planner-events-v1';
-const state = { events: [], view: 'month', month: now.getFullYear() === YEAR ? now.getMonth() : 0, flash: null };
+const LS_TOMB = 'bb-planner-tomb-v1';
+const clampYM = (y, m) => { if (y < YEARS[0]) return [YEARS[0], 0]; if (y > YEARS[YEARS.length - 1]) return [YEARS[YEARS.length - 1], 11]; return [y, Math.max(0, Math.min(11, m))]; };
+const [Y0, M0] = clampYM(now.getFullYear(), now.getMonth());
+const state = { events: [], tomb: {}, view: 'month', year: Y0, month: M0, flash: null };
 try { const raw = localStorage.getItem(LS); if (raw) state.events = JSON.parse(raw) || []; } catch (e) {}
+try { const raw = localStorage.getItem(LS_TOMB); if (raw) state.tomb = JSON.parse(raw) || {}; } catch (e) {}
 
 let dbDoc = null, writing = false, pendingWrite = false;
 async function flushDb(){
   if (!dbDoc) return;
   if (writing) { pendingWrite = true; return; }
   writing = true;
-  try { await dbDoc.set({ events: state.events, updated: Date.now() }); } catch (e) {}
+  try { await dbDoc.set({ events: state.events, tomb: state.tomb, updated: Date.now() }); } catch (e) {}
   writing = false;
   if (pendingWrite) { pendingWrite = false; flushDb(); }
 }
 let saveT = null;
+function saveLocal(){
+  try { localStorage.setItem(LS, JSON.stringify(state.events)); localStorage.setItem(LS_TOMB, JSON.stringify(state.tomb)); } catch (e) {}
+}
 function save(){
-  try { localStorage.setItem(LS, JSON.stringify(state.events)); } catch (e) {}
+  saveLocal();
   clearTimeout(saveT); saveT = setTimeout(flushDb, 350);
+  queueSync();
+}
+/* Merge another copy (cloud or other device) into ours: newest edit of each plan wins,
+   and a deletion wins over any edit made before it. */
+const sigOf = (events, tomb) => JSON.stringify([events.map(e => e.id + ':' + (e.u || 0)).sort(), Object.keys(tomb || {}).sort().map(k => k + ':' + tomb[k])]);
+function mergeDoc(remote){
+  const re = Array.isArray(remote && remote.events) ? remote.events : [], rt = (remote && remote.tomb) || {};
+  const before = sigOf(state.events, state.tomb);
+  for (const id in rt) if (!(state.tomb[id] >= rt[id])) state.tomb[id] = rt[id];
+  const map = new Map(state.events.map(e => [e.id, e]));
+  for (const e of re) { if (!e || !e.id) continue; const l = map.get(e.id); if (!l || (e.u || 0) > (l.u || 0)) map.set(e.id, { ...e }); }
+  state.events = [...map.values()].filter(e => !(state.tomb[e.id] >= (e.u || 0)));
+  sortEvents();
+  const after = sigOf(state.events, state.tomb);
+  return { local: after !== before, push: after !== sigOf(re.filter(e => !(rt[e.id] >= (e.u || 0))), rt) };
 }
 const dataReady = (async () => {
   try {
@@ -306,19 +434,20 @@ const dataReady = (async () => {
     if (snap === 'timeout') return;
     const data = snap && typeof snap.data === 'function' ? snap.data() : snap;
     dbDoc = doc;
-    if (data && Array.isArray(data.events) && data.events.length) { state.events = data.events; sortEvents(); try { localStorage.setItem(LS, JSON.stringify(state.events)); } catch (e) {} renderAll(); }
-    else if (state.events.length) flushDb();
+    const r = mergeDoc(data || {});
+    if (r.local) { saveLocal(); renderAll(); }
+    if (r.push) flushDb();
   } catch (e) {}
 })();
 
 function sortEvents(){ state.events.sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))); }
-function byDate(){ const m = {}; for (const e of state.events) (m[e.date] ||= []).push(e); return m; }
+function byDate(){ /* live plans only */ const m = {}; for (const e of state.events) (m[e.date] ||= []).push(e); return m; }
 function validDate(s){ if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return false; const d = parseISO(s); return iso(d.getFullYear(), d.getMonth(), d.getDate()) === s; }
 function normTime(t){ if (!t) return ''; const m = String(t).match(/^(\d{1,2}):(\d{2})/); if (!m) return ''; const h = +m[1], mi = +m[2]; return h < 24 && mi < 60 ? `${pad(h)}:${pad(mi)}` : ''; }
 function addEvent({ date, title, time = '', note = '' }){
   if (!validDate(date)) throw new Error('date must be YYYY-MM-DD');
   title = String(title || '').trim().slice(0, 80) || 'Plan';
-  const ev = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date, title, time: normTime(time), note: String(note || '').slice(0, 200), color: COLORS[state.events.length % COLORS.length] };
+  const ev = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date, title, time: normTime(time), note: String(note || '').slice(0, 200), color: COLORS[state.events.length % COLORS.length], u: Date.now() };
   state.events.push(ev); sortEvents(); save(); state.flash = date; renderAll(); return ev;
 }
 function updateEvent({ id, ...patch }){
@@ -327,25 +456,37 @@ function updateEvent({ id, ...patch }){
   if (patch.time != null) ev.time = normTime(patch.time);
   if (patch.title != null) ev.title = String(patch.title).slice(0, 80);
   if (patch.note != null) ev.note = String(patch.note).slice(0, 200);
+  ev.u = Date.now();
   sortEvents(); save(); state.flash = ev.date; renderAll(); return ev;
 }
-function deleteEvent(id){ const i = state.events.findIndex(e => e.id === id); if (i < 0) throw new Error('no event with that id'); const [ev] = state.events.splice(i, 1); save(); renderAll(); return ev; }
+function deleteEvent(id){ const i = state.events.findIndex(e => e.id === id); if (i < 0) throw new Error('no event with that id'); const [ev] = state.events.splice(i, 1); state.tomb[id] = Date.now(); save(); renderAll(); return ev; }
 
 /* ---------- routing ---------- */
-function go(view, month){
-  if (month != null) state.month = Math.max(0, Math.min(11, month));
+function go(view, month, year){
+  if (year != null || month != null) { [state.year, state.month] = clampYM(year != null ? year : state.year, month != null ? month : state.month); }
   state.view = view;
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + view));
   document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.go === view));
   if (view === 'year') renderYear();
   if (view === 'month') renderMonth();
-  const h = view === 'month' ? 'month-' + (state.month + 1) : view;
+  const h = view === 'month' ? `month-${state.year}-${pad(state.month + 1)}` : `year-${state.year}`;
   if (location.hash !== '#' + h) { try { history.replaceState(null, '', '#' + h); } catch (e) { location.hash = h; } }
 }
+function shiftMonth(delta){
+  let y = state.year, m = state.month + delta;
+  while (m < 0) { m += 12; y--; } while (m > 11) { m -= 12; y++; }
+  const [cy, cm] = clampYM(y, m); if (cy === y && cm === m) go('month', m, y);
+}
+const atStart = () => state.year === YEARS[0] && state.month === 0;
+const atEnd = () => state.year === YEARS[YEARS.length - 1] && state.month === 11;
 function fromHash(){
   const h = location.hash.replace('#', '');
-  const m = h.match(/^month-(\d{1,2})$/);
-  if (m) go('month', +m[1] - 1); else if (h === 'year') go('year'); else go('month');
+  let m;
+  if ((m = h.match(/^month-(\d{4})-(\d{1,2})$/))) go('month', +m[2] - 1, +m[1]);
+  else if ((m = h.match(/^month-(\d{1,2})$/))) go('month', +m[1] - 1, 2026);          // older links
+  else if ((m = h.match(/^year-(\d{4})$/))) go('year', null, +m[1]);
+  else if (h === 'year') go('year');
+  else go('month');
 }
 addEventListener('hashchange', fromHash);
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
@@ -354,6 +495,9 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-go]'
 /* ---------- year page ---------- */
 const GLOWS = ['#9aa7ec','#c49be0','#a8d0e6','#f0b6c8','#9fd1b4','#f3c59a'];
 function renderYear(){
+  const YEAR = state.year;
+  $('#yTitle').textContent = YEAR;
+  document.querySelectorAll('.ysw').forEach(b => { b.classList.toggle('on', +b.dataset.y === YEAR); b.setAttribute('aria-pressed', +b.dataset.y === YEAR); });
   const g = $('#yearGrid'); g.innerHTML = '';
   const map = byDate();
   for (let m = 0; m < 12; m++) {
@@ -368,7 +512,7 @@ function renderYear(){
     for (let d = 1; d <= dim; d++) { const k = iso(YEAR, m, d); const s = el('span', (map[k] ? 'has ' : '') + (k === TODAY ? 'today' : ''), d); md.append(s); }
     card.append(md);
     card.setAttribute('aria-label', `${MONTHS[m]} ${YEAR}${count ? `, ${count} plans` : ''}`);
-    card.addEventListener('click', () => go('month', m));
+    card.addEventListener('click', () => go('month', m, YEAR));
     g.append(card);
   }
   const ul = $('#upList'); ul.innerHTML = '';
@@ -380,30 +524,31 @@ function renderYear(){
     const dt = el('div', 'dt'); dt.append(el('small', null, MONTHS[d.getMonth()].slice(0, 3)), el('b', null, d.getDate()));
     const tx = el('div', 'tx', e.title); tx.append(el('small', null, WD[d.getDay()] + (e.time ? ' · ' + fmtTime(e.time) : '')));
     b.append(dt, tx);
-    b.addEventListener('click', () => { go('month', d.getMonth()); openDay(e.date); });
+    b.addEventListener('click', () => { go('month', d.getMonth(), d.getFullYear()); openDay(e.date); });
     ul.append(b);
   }
 }
 
 /* ---------- month page ---------- */
-function sunEl(cls){ return el('div', 'sun ' + cls); }
+function sunEl(cls, cond = 'clear'){ return el('div', 'sun ' + cls + (cond !== 'clear' ? ' ' + cond : '')); }
+const wxText = w => w.text || ({ clear: 'Sunny', cloudy: 'Cloudy', rain: 'Rain', snow: 'Snow' })[w.cond] || 'Clear';
 function renderMonth(){
-  const m = state.month, map = byDate();
+  const m = state.month, YEAR = state.year, map = byDate();
   $('#mName').textContent = MONTHS[m]; $('#mYear').textContent = YEAR;
-  $('#prevM').disabled = m === 0; $('#nextM').disabled = m === 11;
+  $('#prevM').disabled = atStart(); $('#nextM').disabled = atEnd();
   const g = $('#monthGrid'); g.innerHTML = '';
   const first = new Date(YEAR, m, 1).getDay(), dim = new Date(YEAR, m + 1, 0).getDate();
   const rows = Math.ceil((first + dim) / 7);
-  g.style.gridTemplateRows = `22px repeat(${rows}, 1fr)`;
+  g.style.gridTemplateRows = COMPACT ? `20px repeat(${rows}, minmax(64px, auto))` : `22px repeat(${rows}, 1fr)`;
   WD.forEach(w => g.append(el('div', 'wdh', w)));
-  const maxChips = rows === 6 ? 2 : 3;
+  const maxChips = COMPACT ? 2 : rows === 6 ? 2 : 3;
   for (let i = 0; i < rows * 7; i++) {
     const d = i - first + 1;
     if (d < 1 || d > dim) { g.append(el('div', 'cell blank')); continue; }
     const k = iso(YEAR, m, d);
     const c = el('button', 'cell' + (k === TODAY ? ' today' : '') + (state.flash === k ? ' flash' : ''));
     const top = el('div', 'top'); top.append(el('span', 'num', d));
-    const w = wxFor(k); if (w) { const wx = el('span', 'wx'); wx.append(sunEl('xs'), document.createTextNode(w.hi + '°')); top.append(wx); }
+    const w = wxFor(k); if (w) { const wx = el('span', 'wx'); wx.append(sunEl('xs', w.cond), document.createTextNode(w.hi + '°')); top.append(wx); }
     c.append(top);
     const evs = map[k] || [];
     evs.slice(0, maxChips).forEach(e => { const ch = el('div', 'chip'); const dot = el('i'); dot.style.background = e.color; ch.append(dot); if (e.time) ch.append(el('em', null, fmtTime(e.time))); ch.append(el('span', null, e.title)); c.append(ch); });
@@ -414,24 +559,25 @@ function renderMonth(){
   }
   state.flash = null;
 }
-$('#prevM').addEventListener('click', () => go('month', state.month - 1));
-$('#nextM').addEventListener('click', () => go('month', state.month + 1));
+$('#prevM').addEventListener('click', () => shiftMonth(-1));
+$('#nextM').addEventListener('click', () => shiftMonth(1));
+document.querySelectorAll('.ysw').forEach(b => b.addEventListener('click', () => go('year', null, +b.dataset.y)));
 
 function renderWeather(){
   const w = $('#weather'); w.innerHTML = '';
   w.append(el('div', 'eyebrow', 'Weather · ' + WEATHER.city));
-  const nowRow = el('div', 'now'); nowRow.append(sunEl('big'), el('div', 'temp', WEATHER.current.t + '°'));
+  const nowRow = el('div', 'now'); nowRow.append(sunEl('big', WEATHER.current.cond), el('div', 'temp', WEATHER.current.t + '°'));
   const desc = el('div', 'desc'); desc.append(el('b', null, WEATHER.current.text)); desc.append(document.createElement('br'));
-  const today = wxFor(TODAY); desc.append(document.createTextNode(today ? `H ${today.hi}° · L ${today.lo}° · ${today.p}% rain` : 'Clear skies ahead'));
+  const today = wxFor(TODAY); desc.append(document.createTextNode(today ? `H ${today.hi}° · L ${today.lo}° · ${today.p}% rain` : ''));
   nowRow.append(desc); w.append(nowRow);
   const strip = el('div', 'strip');
   WEATHER.days.filter(x => x.d >= TODAY).slice(0, 7).forEach(x => {
     const d = parseISO(x.d); const c = el('div', x.d === TODAY ? 'on' : '');
-    c.append(document.createTextNode(x.d === TODAY ? 'Today' : WD[d.getDay()]), sunEl('sm'), el('b', null, x.hi + '°'));
+    c.append(document.createTextNode(x.d === TODAY ? 'Today' : WD[d.getDay()]), sunEl('sm', x.cond), el('b', null, x.hi + '°'));
     c.append(document.createTextNode(x.lo + '°')); strip.append(c);
   });
   w.append(strip);
-  w.append(el('div', 'foot', `Forecast snapshot from ${WEATHER.asOf}, °C. Ask Claude to refresh it.`));
+  w.append(el('div', 'foot', WEATHER.live ? `Live forecast · Open-Meteo · updated ${WEATHER.asOf} · °C` : `Forecast snapshot from ${WEATHER.asOf}, °C. Ask Claude to refresh it.`));
 }
 
 /* ---------- day modal ---------- */
@@ -442,7 +588,7 @@ function openDay(date){
   $('#dayEyebrow').textContent = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
   $('#dayTitle').textContent = longDate(date);
   const wx = $('#dayWx'); wx.innerHTML = '';
-  const w = wxFor(date); if (w) { wx.append(sunEl('sm'), document.createTextNode(`Sunny · ${w.hi}° / ${w.lo}° · ${w.p}% chance of rain`)); }
+  const w = wxFor(date); if (w) { wx.append(sunEl('sm', w.cond), document.createTextNode(`${wxText(w)} · ${w.hi}° / ${w.lo}° · ${w.p}% chance of rain`)); }
   renderDayList();
   $('#modal').classList.add('open');
   setTimeout(() => $('#evTitle').focus(), 50);
@@ -468,16 +614,16 @@ $('#dayForm').addEventListener('submit', e => {
 addEventListener('keydown', e => {
   if (e.key === 'Escape' && openDate) closeDay();
   if (state.view === 'month' && !openDate && document.activeElement.tagName !== 'INPUT') {
-    if (e.key === 'ArrowLeft' && state.month > 0) go('month', state.month - 1);
-    if (e.key === 'ArrowRight' && state.month < 11) go('month', state.month + 1);
+    if (e.key === 'ArrowLeft') shiftMonth(-1);
+    if (e.key === 'ArrowRight') shiftMonth(1);
   }
 });
 
 /* ---------- AI assistant ---------- */
 const msgs = $('#msgs');
 function bubble(cls, text){ const b = el('div', 'msg ' + cls, text); msgs.append(b); msgs.scrollTop = msgs.scrollHeight; return b; }
-bubble('bot', "Hi! I'm Berry. Tell me about your plans and I'll put them on the calendar — like \"I have a meet up with my friend on 11/10\".");
-const SUGS = ['Lunch with my friend tomorrow at noon', 'Dentist next Friday at 3pm', "What's on this week?", 'Will it be sunny on 11/12?'];
+bubble('bot', "Hi! I'm Berry. Tell me about your plans and I'll put them on the calendar — like \"I have a meet up with my friend on 12/5\".");
+const SUGS = ['Lunch with my friend tomorrow at noon', 'Dentist next Friday at 3pm', "What's on this week?", "What's the weather tomorrow?"];
 SUGS.forEach(s => { const b = el('button', 'sug', s); b.type = 'button'; b.addEventListener('click', () => send(s)); $('#chips').append(b); });
 
 const history_ = [];
@@ -493,17 +639,17 @@ const TOOLS = [
     execute: i => { const ev = updateEvent(i); jumpTo(ev.date); return { ok: true, event: ev }; } },
   { name: 'delete_event', description: 'Delete a plan by id.', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
     execute: ({ id }) => ({ ok: true, deleted: deleteEvent(id) }) },
-  { name: 'get_weather', description: 'Weather forecast snapshot for Seoul in °C (only covers the listed days).', inputSchema: { type: 'object', properties: {} },
+  { name: 'get_weather', description: 'Weather forecast for Seoul in °C (only covers the listed days).', inputSchema: { type: 'object', properties: {} },
     execute: () => WEATHER },
 ];
-function jumpTo(date){ const d = parseISO(date); if (d.getFullYear() === YEAR && state.view === 'month' && d.getMonth() !== state.month) { state.flash = date; go('month', d.getMonth()); } }
+function jumpTo(date){ const d = parseISO(date); if (YEARS.includes(d.getFullYear()) && state.view === 'month' && (d.getMonth() !== state.month || d.getFullYear() !== state.year)) { state.flash = date; go('month', d.getMonth(), d.getFullYear()); } }
 
 function preamble(){
   const d = new Date();
-  return `You are Berry, a warm, concise planning assistant inside the user's personal 2026 planner.
+  return `You are Berry, a warm, concise planning assistant inside the user's personal planner, which covers 2026 and 2027.
 Today is ${WD[d.getDay()]} ${TODAY} (time zone ${Intl.DateTimeFormat().resolvedOptions().timeZone}).
 Use the tools to add, update, delete or look up plans. Never say you changed the calendar unless a tool call succeeded.
-Dates like "11/10" mean month/day. If no year is given, use 2026. Resolve relative dates ("tomorrow", "next Friday") from today.
+Dates like "11/10" mean month/day. If no year is given, use the next time that date comes around (on or after today). Resolve relative dates ("tomorrow", "next Friday") from today.
 Leave time empty if the user didn't give one. Make titles short and natural (e.g. "Meet up with friend").
 For weather, call get_weather; if a date isn't covered, say the forecast doesn't reach that far yet.
 Reply in 1–3 short plain-text sentences, no markdown. Confirm what you did with the weekday and date.
@@ -545,16 +691,17 @@ $('#chatForm').addEventListener('submit', e => { e.preventDefault(); send($('#ch
 /* Fallback: simple local parser when Claude isn't available */
 const MON_RE = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i;
 const DOW = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+// a month/day with no year: the next time it comes around, from today
+function nextOcc(mi, d){ let y = now.getFullYear(); const k = iso(y, mi, d); return k >= TODAY ? k : iso(y + 1, mi, d); }
 function localAgent(text){
   let t = ' ' + text + ' ', lower = text.toLowerCase();
   const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let date = null, m;
   if ((m = t.match(/\b(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\b/))) {
-    const y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : YEAR;
-    date = iso(y, +m[1] - 1, +m[2]); t = t.replace(m[0], ' ');
+    date = m[3] ? iso(m[3].length === 2 ? 2000 + +m[3] : +m[3], +m[1] - 1, +m[2]) : nextOcc(+m[1] - 1, +m[2]); t = t.replace(m[0], ' ');
   } else if ((m = t.match(MON_RE))) {
     const mi = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[1].slice(0, 3).toLowerCase());
-    date = iso(YEAR, mi, +m[2]); t = t.replace(m[0], ' ');
+    date = nextOcc(mi, +m[2]); t = t.replace(m[0], ' ');
   } else if (/\btomorrow\b/i.test(t)) { const d = new Date(base); d.setDate(d.getDate() + 1); date = iso(d.getFullYear(), d.getMonth(), d.getDate()); t = t.replace(/\btomorrow\b/i, ' '); }
   else if (/\b(today|tonight)\b/i.test(t)) { date = TODAY; t = t.replace(/\b(today|tonight)\b/i, ' '); }
   else if ((m = t.match(/\b(next\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i))) {
@@ -564,7 +711,7 @@ function localAgent(text){
   const asksList = /\b(what('?s| is)|show|list|anything)\b.*\b(on|planned|schedule|week|today|tomorrow|plans?)\b/i.test(lower) && !/\b(have|add|book|schedule a|meet)\b/i.test(lower);
   if (/\b(weather|sunny|rain|cold|warm|temperature)\b/i.test(lower)) {
     const w = date ? wxFor(date) : wxFor(TODAY);
-    if (w) return `${longDate(w.d)} in Seoul: sunny, ${w.hi}° / ${w.lo}°, ${w.p}% chance of rain.`;
+    if (w) return `${longDate(w.d)} in Seoul: ${wxText(w).toLowerCase()}, ${w.hi}° / ${w.lo}°, ${w.p}% chance of rain.`;
     return `My forecast snapshot only covers ${longDate(WEATHER.days[0].d)} to ${longDate(WEATHER.days[WEATHER.days.length - 1].d)}, so I can't say for that day yet.`;
   }
   if (asksList) {
@@ -589,15 +736,170 @@ function localAgent(text){
   return `Added "${ev.title}" on ${longDate(ev.date)}${ev.time ? ' at ' + fmtTime(ev.time) : ''}.`;
 }
 
+/* ---------- GitHub Gist sync (same method as myPlanner) ----------
+   Plans are saved to a private Gist in your own GitHub account using a token that
+   can only touch gists. Off on claude.ai, where your Claude account already syncs. */
+const IN_CLAUDE = !!window.claude;
+const SYNC_FILE = 'blueberry-planner-sync.json';
+const CFG_KEY = 'bb_gh_sync';
+let cfg = null, syncBusy = false, syncAgain = false, lastSync = 0, syncTimer = null, syncState = 'off';
+let syncOptOut = false;
+try { cfg = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); if (cfg && cfg.off) { cfg = null; syncOptOut = true; } } catch (e) {}
+// myPlanner lives on the same site, so its token is already on this device: reuse it
+if (!cfg && !syncOptOut && !IN_CLAUDE) { try { const mp = JSON.parse(localStorage.getItem('gh_sync') || 'null'); if (mp && mp.token) { cfg = { token: mp.token, login: mp.login, fromMyPlanner: true }; } } catch (e) {} }
+function saveCfg(){ try { cfg ? localStorage.setItem(CFG_KEY, JSON.stringify(cfg)) : localStorage.removeItem(CFG_KEY); } catch (e) {} }
+const ago = t => { const s = Math.round((Date.now() - t) / 1000); return s < 15 ? 'just now' : s < 60 ? s + 's ago' : s < 3600 ? Math.round(s / 60) + 'm ago' : Math.round(s / 3600) + 'h ago'; };
+function setSync(s){
+  syncState = s;
+  const b = $('#syncBtn'); if (!b) return;
+  const txt = s === 'off' ? 'Sync' : s === 'busy' ? 'Syncing…' : s === 'ok' ? 'Synced' : s === 'auth' ? 'Fix sync' : 'Offline';
+  b.dataset.s = s === 'auth' ? 'err' : s; b.querySelector('span').textContent = txt;
+  b.title = s === 'ok' ? 'Synced ' + ago(lastSync) : s === 'net' ? 'Offline — saved on this device' : s === 'auth' ? 'GitHub rejected the token' : s === 'off' ? 'Set up sync' : 'Syncing';
+}
+async function gh(path, opt = {}){
+  const r = await fetch('https://api.github.com' + path, { ...opt, cache: 'no-store', headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + cfg.token, ...(opt.body ? { 'Content-Type': 'application/json' } : {}) } });
+  if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+  return r.status === 204 ? null : r.json();
+}
+const docJSON = () => JSON.stringify({ app: 'blueberry-planner', v: 1, at: Date.now(), events: state.events, tomb: state.tomb });
+async function findOrCreate(){
+  for (let p = 1; p <= 5; p++) { const list = await gh(`/gists?per_page=100&page=${p}`); const g = list.find(x => x.files && x.files[SYNC_FILE]); if (g) return g.id; if (list.length < 100) break; }
+  const g = await gh('/gists', { method: 'POST', body: JSON.stringify({ description: 'Blueberry Planner sync · plans (managed by the Blueberry Planner app)', public: false, files: { [SYNC_FILE]: { content: docJSON() } } }) });
+  return g.id;
+}
+async function pull(){
+  const g = await gh('/gists/' + cfg.gist); const f = g.files[SYNC_FILE]; if (!f) return {};
+  let txt = f.content; if (f.truncated) txt = await (await fetch(f.raw_url, { cache: 'no-store' })).text();
+  try { return JSON.parse(txt || '{}'); } catch (e) { return {}; }
+}
+async function syncNow(quiet){
+  if (IN_CLAUDE) return;
+  if (!cfg || !cfg.token) return setSync('off');
+  if (syncBusy) { syncAgain = true; return; }
+  syncBusy = true; if (!quiet) setSync('busy');
+  try {
+    if (!cfg.gist) { cfg.gist = await findOrCreate(); saveCfg(); }
+    let remote;
+    try { remote = await pull(); } catch (e) { if (e.status === 404) { cfg.gist = await findOrCreate(); saveCfg(); remote = await pull(); } else throw e; }
+    const r = mergeDoc(remote);
+    if (r.local) { saveLocal(); renderAll(); if (lastSync) toast('Updated from your other device'); }
+    if (r.push) await gh('/gists/' + cfg.gist, { method: 'PATCH', body: JSON.stringify({ files: { [SYNC_FILE]: { content: docJSON() } } }) });
+    lastSync = Date.now(); setSync('ok');
+  } catch (e) { setSync(e.status === 401 || e.status === 403 ? 'auth' : 'net'); }
+  syncBusy = false; if (syncAgain) { syncAgain = false; syncNow(true); }
+}
+function queueSync(){ if (IN_CLAUDE || !cfg) return; clearTimeout(syncTimer); setSync('busy'); syncTimer = setTimeout(() => syncNow(true), 900); }
+if (!IN_CLAUDE) {
+  setInterval(() => { if (cfg && document.visibilityState === 'visible') syncNow(true); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncNow(true); });
+  addEventListener('online', () => syncNow(true));
+  addEventListener('focus', () => syncNow(true));
+}
+
+let toastT;
+function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const b64e = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64d = s => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
+const setupLink = () => location.origin + location.pathname + '#sync=' + b64e(JSON.stringify({ t: cfg.token, g: cfg.gist }));
+
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const STANDALONE = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+let installEvt = null;
+
+function openSheet(html){ $('#sheetBody').innerHTML = html; $('#sheet').classList.add('open'); }
+function closeSheet(){ $('#sheet').classList.remove('open'); }
+function renderSync(err){
+  if (!cfg) {
+    openSheet(`<div class="eyebrow">Sync</div><h2>Sync across your devices</h2>
+      <p>Your plans are saved to a private Gist in your own GitHub account, so your Mac and phone always match — the same way myPlanner syncs.</p>
+      <ol>
+        <li><a href="https://github.com/settings/tokens/new?scopes=gist&description=Blueberry%20Planner%20sync" target="_blank" rel="noopener">Create a GitHub token</a> (classic) with only the <b>gist</b> box ticked.</li>
+        <li>Paste it here. On your phone, use “Copy setup link” afterwards instead of pasting again.</li>
+      </ol>
+      <input type="password" id="tokIn" placeholder="ghp_…" autocomplete="off" spellcheck="false" aria-label="GitHub token">
+      ${err ? `<div class="err">${esc(err)}</div>` : ''}
+      <div class="row"><button class="pbtn" data-x="close" type="button">Not now</button><button class="pbtn primary" data-x="connect" type="button">Connect</button></div>`);
+    setTimeout(() => { const i = $('#tokIn'); i && i.focus(); }, 60);
+  } else {
+    openSheet(`<div class="eyebrow">Sync</div><h2>Sync is on</h2>
+      <p class="okline"><i data-s="${syncState === 'ok' ? 'ok' : 'err'}"></i><span><b>${esc(cfg.login || 'GitHub')}</b> · private gist${cfg.fromMyPlanner ? ' · using your myPlanner token' : ''}<br><small>${syncState === 'ok' ? 'Last synced ' + ago(lastSync) : syncState === 'auth' ? 'The token was rejected. Disconnect and paste a new one.' : 'Waiting for a connection'}</small></span></p>
+      <p><b>Add your phone:</b> copy the setup link, send it to yourself (AirDrop or KakaoTalk), open it on the phone, then install the app from there.</p>
+      <div class="warn">The setup link contains your token. Only open it on your own devices and never post it anywhere.</div>
+      ${err ? `<div class="err">${esc(err)}</div>` : ''}
+      <div class="row"><button class="pbtn" data-x="off" type="button">Disconnect</button><button class="pbtn" data-x="now" type="button">Sync now</button>${navigator.share ? '<button class="pbtn" data-x="share" type="button">Share link</button>' : ''}<button class="pbtn primary" data-x="copy" type="button">Copy setup link</button></div>
+      <input type="text" id="linkOut" readonly hidden aria-label="Setup link">
+      <div class="row"><button class="pbtn" data-x="close" type="button">Done</button></div>`);
+  }
+}
+function renderInstall(){
+  openSheet(`<div class="eyebrow">Install</div><h2>Put the planner on your home screen</h2>
+    ${IS_IOS ? `<ol><li>Open this page in <b>Safari</b>.</li><li>Tap <b>Share</b> → <b>Add to Home Screen</b> → Add.</li></ol>`
+      : installEvt ? `<p>Install it as an app: it opens in its own window and works offline.</p>`
+      : `<ol><li><b>Chrome / Edge on Mac:</b> ⋮ menu → Cast, save, and share → <b>Install page as app</b>.</li><li><b>Safari on Mac:</b> File → <b>Add to Dock</b>.</li><li><b>Android:</b> ⋮ menu → <b>Add to Home screen</b>.</li></ol>`}
+    <div class="row"><button class="pbtn" data-x="close" type="button">Close</button>${installEvt ? '<button class="pbtn primary" data-x="install" type="button">Install</button>' : ''}</div>`);
+}
+$('#sheet').addEventListener('click', async e => {
+  if (e.target.id === 'sheet') return closeSheet();
+  const x = e.target.closest('[data-x]'); if (!x) return; const a = x.dataset.x;
+  if (a === 'close') closeSheet();
+  if (a === 'install' && installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch (err) {} installEvt = null; closeSheet(); updateInstallBtn(); }
+  if (a === 'connect') {
+    const tok = ($('#tokIn').value || '').trim(); if (!tok) return renderSync('Paste the token first.');
+    x.disabled = true; x.textContent = 'Connecting…';
+    cfg = { token: tok };
+    try { const u = await gh('/user'); cfg.login = u.login; cfg.gist = await findOrCreate(); saveCfg(); await syncNow(); renderSync(); toast('Sync connected'); }
+    catch (err) { cfg = null; renderSync(err.status === 401 ? 'GitHub rejected that token. Check you copied all of it.' : err.status === 403 || err.status === 404 ? 'That token can’t create gists. Make sure the “gist” box is ticked.' : 'Couldn’t reach GitHub. Check your connection and try again.'); }
+  }
+  if (a === 'now') { await syncNow(); renderSync(); }
+  if (a === 'off') { cfg = null; try { localStorage.setItem(CFG_KEY, JSON.stringify({ off: true })); } catch (err) {} setSync('off'); renderSync(); toast('Sync turned off on this device'); }
+  if (a === 'copy') { const l = setupLink(); try { await navigator.clipboard.writeText(l); toast('Setup link copied'); } catch (err) { const o = $('#linkOut'); o.hidden = false; o.value = l; o.select(); } }
+  if (a === 'share') { try { await navigator.share({ title: 'Blueberry Planner sync', url: setupLink() }); } catch (err) {} }
+});
+function updateInstallBtn(){ const b = $('#installBtn'); if (b) b.hidden = IN_CLAUDE || STANDALONE || !(installEvt || IS_IOS || location.protocol === 'https:'); }
+if (!IN_CLAUDE) {
+  $('#syncBtn').hidden = false;
+  $('#syncBtn').addEventListener('click', () => renderSync());
+  $('#installBtn').addEventListener('click', renderInstall);
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; updateInstallBtn(); });
+  addEventListener('appinstalled', () => { installEvt = null; toast('Installed'); updateInstallBtn(); });
+  updateInstallBtn();
+  // a setup link opened on this device: store the token, then clean it out of the address bar
+  const sm = /^#sync=([\w-]+)/.exec(location.hash);
+  if (sm) { try { const o = JSON.parse(b64d(sm[1])); if (o.t) { cfg = { token: o.t, gist: o.g || null }; saveCfg(); setTimeout(() => toast('Sync set up on this device'), 600); } } catch (e) {} history.replaceState(null, '', location.pathname + '#month'); }
+  if (cfg && cfg.fromMyPlanner) saveCfg();   // keep our own copy of the token
+  setSync(cfg ? 'busy' : 'off');
+  // offline support once it's on a real site
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+/* ---------- live weather (Open-Meteo) when running on its own site ---------- */
+const WX_CODE = c => c <= 1 ? ['clear', c === 0 ? 'Clear' : 'Mostly clear'] : c <= 3 ? ['cloudy', c === 2 ? 'Partly cloudy' : 'Cloudy'] : c <= 48 ? ['cloudy', 'Foggy'] : c <= 67 || (c >= 80 && c <= 82) ? ['rain', 'Rain'] : c <= 77 || c === 85 || c === 86 ? ['snow', 'Snow'] : ['rain', 'Storms'];
+const liveWeather = (async () => {
+  if (IN_CLAUDE) return;
+  try {
+    const u = 'https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.978&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=8';
+    const r = await Promise.race([fetch(u, { cache: 'no-store' }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))]);
+    if (!r.ok) return;
+    const j = await r.json();
+    const [cc, ct] = WX_CODE(j.current.weather_code);
+    WEATHER = { city: 'Seoul', live: true, asOf: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), current: { t: Math.round(j.current.temperature_2m), text: ct, cond: cc },
+      days: j.daily.time.map((d, i) => { const [c, txt] = WX_CODE(j.daily.weather_code[i]); return { d, hi: Math.round(j.daily.temperature_2m_max[i]), lo: Math.round(j.daily.temperature_2m_min[i]), cond: c, text: txt, p: j.daily.precipitation_probability_max[i] ?? 0 }; }) };
+    renderWeather(); renderAll();
+  } catch (e) {}
+})();
+
 function renderAll(){ if (state.view === 'year') renderYear(); if (state.view === 'month') renderMonth(); if (openDate) renderDayList(); }
 renderWeather();
 fromHash();
+booted = true;
+syncNow(true);   // pull the latest from your other devices on open
 loadStep(45, 'laying out the month…');
 (async () => {
   const wait = ms => new Promise(r => setTimeout(r, ms));
   await Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), wait(2500)]);
   loadStep(72, 'checking the weather…');
-  await Promise.race([dataReady, wait(3000)]);
+  await Promise.race([Promise.all([dataReady, liveWeather]), wait(3000)]);
   loadStep(100, 'ready');
   await wait(Math.max(450, 1400 - (performance.now() - T0)));
   const ld = document.getElementById('loader'); ld.classList.add('done'); ld.setAttribute('aria-hidden', 'true');

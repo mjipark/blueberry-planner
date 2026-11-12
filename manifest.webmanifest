@@ -1,0 +1,16 @@
+{
+  "name": "Blueberry Planner",
+  "short_name": "Blueberry",
+  "description": "A soft-focus personal planner for 2026–2027 with an AI helper, weather and sync.",
+  "start_url": "./#month",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#d3dddb",
+  "theme_color": "#d3dddb",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

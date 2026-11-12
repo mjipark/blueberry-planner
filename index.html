@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blueberry Planner 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --mint:#d3dddb; --mint-deep:#c5d1cf;
+  --ink:#33386c; --ink-soft:#646a9a; --ink-faint:#9095bb;
+  --berry:#7480cf; --plum:#6b3f9e; --coral:#e0866c;
+  --paper:rgba(255,255,255,.46); --paper-strong:rgba(255,255,255,.66); --edge:rgba(255,255,255,.75);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--mint);font-family:Manrope,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+#stage{position:absolute;left:50%;top:50%;width:1440px;height:900px;transform:translate(-50%,-50%) scale(var(--s,1));overflow:hidden;background:var(--mint)}
+.grain{position:absolute;inset:0;pointer-events:none;z-index:90;opacity:.38;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .1  0 0 0 0 .12  0 0 0 0 .2  0 0 0 .5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+
+/* brand + nav */
+#brand{position:absolute;left:44px;top:30px;z-index:60;font-family:Fraunces,serif;font-style:italic;font-size:21px;letter-spacing:.2px;color:var(--ink)}
+#brand b{font-style:normal;font-weight:600}
+#nav{position:absolute;right:40px;top:24px;z-index:60;display:flex;gap:8px;padding:6px;border-radius:999px;background:rgba(255,255,255,.34);border:1px solid var(--edge);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.navbtn{border:0;background:transparent;padding:9px 20px;border-radius:999px;font-weight:600;font-size:13px;letter-spacing:.3px;color:var(--ink-soft);transition:background .3s,color .3s}
+.navbtn:hover{color:var(--ink);background:rgba(255,255,255,.5)}
+.navbtn.active{background:#b9c3f3;color:var(--ink)}
+
+/* pages */
+.page{position:absolute;inset:0;opacity:0;visibility:hidden;filter:blur(16px);transform:scale(1.015);transition:opacity .65s ease,filter .65s ease,transform .65s ease,visibility 0s .65s}
+.page.active{opacity:1;visibility:visible;filter:none;transform:none;transition:opacity .65s ease,filter .65s ease,transform .65s ease}
+
+
+/* shared */
+.card{background:var(--paper);border:1px solid var(--edge);border-radius:24px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.eyebrow{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;font-weight:700;color:var(--ink-faint)}
+.title-xl{font-family:Fraunces,serif;font-weight:400;letter-spacing:-2px;margin:0;line-height:.9}
+
+/* year */
+#yearHead{position:absolute;left:44px;top:96px}
+#yearHead .title-xl{font-size:118px}
+#yearHead p{margin:10px 0 0 4px;font-family:Fraunces,serif;font-style:italic;color:var(--ink-soft);font-size:17px}
+#yearGrid{position:absolute;left:44px;top:262px;width:1020px;height:604px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:16px}
+.mini{position:relative;text-align:left;padding:14px 16px 12px;border-radius:22px;border:1px solid var(--edge);background:var(--paper);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);overflow:hidden;transition:transform .35s,background .35s}
+.mini:hover{transform:translateY(-4px);background:var(--paper-strong)}
+.mini.current{background:rgba(255,255,255,.7)}
+.mini .mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;position:relative}
+.mini .mn{font-family:Fraunces,serif;font-size:21px}
+.mini .mc{font-size:11px;font-weight:600;color:var(--ink-faint)}
+.mini .md{display:grid;grid-template-columns:repeat(7,1fr);row-gap:1px;font-size:10.5px;text-align:center;position:relative}
+.mini .md span{height:20px;line-height:20px;position:relative;color:var(--ink-soft)}
+.mini .md .wd{font-weight:700;color:var(--ink-faint);font-size:9.5px}
+.mini .md .has{color:var(--ink);font-weight:700}
+.mini .md .has::before{content:"";position:absolute;left:50%;top:50%;width:19px;height:19px;margin:-9.5px 0 0 -9.5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#dfe5ff,#a3b0ee 70%);filter:blur(1.6px);z-index:-1}
+.mini .md .today{color:var(--coral);font-weight:800}
+.mini .glow{position:absolute;width:150px;height:150px;border-radius:50%;right:-60px;bottom:-70px;filter:blur(34px);opacity:.3;pointer-events:none}
+#upcoming{position:absolute;left:1088px;top:96px;width:308px;height:770px;padding:24px 22px;display:flex;flex-direction:column}
+#upcoming h3{font-family:Fraunces,serif;font-weight:400;font-size:28px;margin:6px 0 16px}
+#upList{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px}
+.up{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.42);border:0;text-align:left;width:100%}
+.up:hover{background:rgba(255,255,255,.7)}
+.up .dt{min-width:44px;text-align:center;font-family:Fraunces,serif;line-height:1}
+.up .dt b{display:block;font-size:24px;font-weight:500}
+.up .dt small{font-family:Manrope;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--ink-faint);text-transform:uppercase}
+.up .tx{font-size:13.5px;font-weight:600;line-height:1.35}
+.up .tx small{display:block;font-weight:500;color:var(--ink-soft);font-size:12px}
+.empty{font-size:13px;color:var(--ink-soft);line-height:1.6;font-style:italic;font-family:Fraunces,serif}
+
+/* month */
+#monthHead{position:absolute;left:44px;top:84px;width:930px;display:flex;align-items:flex-end;justify-content:space-between}
+#monthHead .title-xl{font-size:84px}
+#monthHead .yr{font-family:Fraunces,serif;font-style:italic;font-size:22px;color:var(--ink-soft);margin-left:12px}
+.arrows{display:flex;gap:8px;margin-bottom:8px}
+.arrow{width:44px;height:44px;border-radius:50%;border:1px solid var(--edge);background:var(--paper);font-size:18px;display:grid;place-items:center;transition:background .3s}
+.arrow:hover{background:var(--paper-strong)}
+.arrow:disabled{opacity:.35;cursor:default}
+#monthGrid{position:absolute;left:44px;top:190px;width:930px;height:676px;display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+#monthGrid .wdh{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-faint);padding:0 10px;align-self:end}
+.cell{position:relative;text-align:left;border:1px solid rgba(255,255,255,.6);border-radius:16px;background:rgba(255,255,255,.34);padding:8px 9px;overflow:hidden;display:flex;flex-direction:column;gap:3px;transition:background .25s,transform .25s}
+.cell:hover{background:rgba(255,255,255,.62)}
+.cell.blank{background:rgba(255,255,255,.12);border-color:transparent;cursor:default}
+.cell .top{display:flex;justify-content:space-between;align-items:center;height:24px}
+.cell .num{position:relative;font-weight:700;font-size:14px;width:26px;height:26px;display:grid;place-items:center;z-index:0}
+.cell.today .num{color:var(--ink)}
+.cell.today .num::before{content:"";position:absolute;inset:-3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e3e8ff,#a9b5f0 72%);filter:blur(2px);z-index:-1}
+.cell .wx{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--ink-soft)}
+.chip{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;line-height:1.25;padding:3px 6px;border-radius:8px;background:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip i{flex:none;width:7px;height:7px;border-radius:50%;filter:blur(.4px)}
+.chip span{overflow:hidden;text-overflow:ellipsis}
+.chip em{font-style:normal;color:var(--ink-soft);font-weight:500}
+.more{font-size:11px;font-weight:600;color:var(--ink-soft);padding-left:4px}
+.cell.flash{animation:flash 1.6s ease}
+@keyframes flash{0%{background:rgba(255,255,255,.95);transform:scale(1.04)}100%{background:rgba(255,255,255,.34);transform:none}}
+
+#side{position:absolute;left:1000px;top:84px;width:396px;height:782px;display:flex;flex-direction:column;gap:14px}
+#weather{padding:18px 20px 16px;position:relative;overflow:hidden}
+#weather .now{display:flex;align-items:center;gap:16px;margin-top:6px}
+#weather .temp{font-family:Fraunces,serif;font-size:56px;line-height:1;font-weight:400}
+#weather .desc{font-size:13px;color:var(--ink-soft);line-height:1.45}
+#weather .desc b{color:var(--ink);font-size:15px}
+#weather .strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:14px;text-align:center}
+#weather .strip div{font-size:11px;color:var(--ink-soft);font-weight:600;display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 0;border-radius:12px}
+#weather .strip div.on{background:rgba(255,255,255,.5);color:var(--ink)}
+#weather .strip b{color:var(--ink);font-size:12px}
+#weather .foot{font-size:10.5px;color:var(--ink-faint);margin-top:10px}
+.sun{border-radius:50%;background:radial-gradient(circle at 40% 38%,#fff0bf 0%,#fbcf91 52%,#f3a985 100%);filter:blur(2.2px);flex:none}
+.sun.big{width:62px;height:62px;filter:blur(6px)}
+.sun.sm{width:18px;height:18px}
+.sun.xs{width:12px;height:12px;filter:blur(1.4px)}
+
+#chat{flex:1;display:flex;flex-direction:column;padding:16px 16px 14px;min-height:0}
+#chat .ch{display:flex;align-items:center;gap:10px;padding:0 4px 10px}
+#chat .ava{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e3e8ff,#9eaaea 70%);filter:blur(1.4px)}
+#chat .ch b{font-family:Fraunces,serif;font-weight:500;font-size:18px}
+#chat .ch small{display:block;font-size:11px;color:var(--ink-faint);font-weight:600}
+#msgs{flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:4px 4px 8px}
+.msg{max-width:86%;padding:9px 13px;border-radius:16px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+.msg.bot{align-self:flex-start;background:rgba(255,255,255,.66);border-bottom-left-radius:6px}
+.msg.user{align-self:flex-end;background:#c3ccf5;color:var(--ink);border-bottom-right-radius:6px}
+.msg.note{align-self:center;background:transparent;font-size:11.5px;color:var(--ink-faint);padding:2px}
+.msg.typing{color:var(--ink-soft);font-style:italic}
+#chips{display:flex;flex-wrap:wrap;gap:6px;padding:6px 2px 10px}
+.sug{border:1px solid var(--edge);background:rgba(255,255,255,.4);border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:600;color:var(--ink-soft)}
+.sug:hover{background:rgba(255,255,255,.75);color:var(--ink)}
+#chatForm{display:flex;gap:8px}
+#chatInput{flex:1;border:1px solid var(--edge);background:rgba(255,255,255,.62);border-radius:999px;padding:11px 16px;font-size:13.5px;outline:none}
+#chatInput:focus{background:rgba(255,255,255,.88)}
+#sendBtn{border:0;background:#aeb9f0;color:var(--ink);border-radius:999px;padding:0 18px;font-weight:700;font-size:13px}
+#sendBtn:disabled{opacity:.5}
+
+/* modal */
+#modal{position:absolute;inset:0;z-index:80;display:none;place-items:center;background:rgba(34,37,92,.16);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#modal.open{display:grid}
+#dayCard{width:480px;max-height:640px;display:flex;flex-direction:column;padding:26px 26px 22px;background:rgba(240,246,242,.88);position:relative}
+#dayCard h2{font-family:Fraunces,serif;font-weight:400;font-size:34px;margin:4px 0 4px;letter-spacing:-.5px}
+#dayCard .wxline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);margin-bottom:14px}
+#closeBtn{position:absolute;right:18px;top:18px;width:36px;height:36px;border-radius:50%;border:1px solid var(--edge);background:rgba(255,255,255,.6);font-size:16px}
+#dayList{overflow:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:300px}
+.ev{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:rgba(255,255,255,.7)}
+.ev i{width:12px;height:12px;border-radius:50%;flex:none;filter:blur(.8px)}
+.ev .t{flex:1;font-size:14px;font-weight:600}
+.ev .t small{display:block;font-weight:500;color:var(--ink-soft);font-size:12px}
+.ev button{border:0;background:transparent;color:var(--ink-faint);font-size:13px;font-weight:700;padding:4px 8px;border-radius:8px}
+.ev button:hover{background:rgba(212,88,60,.12);color:var(--coral)}
+#dayForm{display:flex;gap:8px}
+#dayForm input{border:1px solid var(--edge);background:#fff;border-radius:12px;padding:11px 12px;font-size:13.5px;outline:none}
+#dayForm input[type=time]{width:120px}
+#dayForm input[type=text]{flex:1;min-width:0}
+#dayForm button{border:0;background:#aeb9f0;color:var(--ink);border-radius:12px;padding:0 16px;font-weight:700;font-size:13px}
+
+/* loader */
+#loader{position:absolute;inset:0;z-index:95;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:var(--mint);transition:opacity .9s ease,filter .9s ease}
+#loader.done{opacity:0;filter:blur(12px);pointer-events:none}
+#loader svg{width:96px;height:96px;animation:ldspin 1.6s linear infinite;overflow:visible}
+#loader .trk{fill:none;stroke:rgba(255,255,255,.6);stroke-width:7}
+#ldArc{fill:none;stroke:url(#ldGrad);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset .6s ease;filter:url(#ldSoft)}
+#loader .ldTxt{font-family:Fraunces,serif;font-style:italic;font-size:17px;color:var(--ink-soft)}
+#loader .ldPct{font-size:11px;font-weight:700;letter-spacing:1.6px;color:var(--ink-faint)}
+@keyframes ldspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){#loader svg{animation:none}}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <div id="loader" role="status" aria-live="polite">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <linearGradient id="ldGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9d8f2"/><stop offset=".55" stop-color="#7f9bd0"/><stop offset="1" stop-color="#2f5a92"/></linearGradient>
+        <filter id="ldSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation=".8"/></filter>
+      </defs>
+      <circle class="trk" cx="50" cy="50" r="42"/>
+      <circle id="ldArc" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="263.9" transform="rotate(-90 50 50)"/>
+    </svg>
+    <div class="ldTxt" id="ldTxt">opening your planner…</div>
+    <div class="ldPct" id="ldPct">0%</div>
+  </div>
+  <div id="brand"><b>Blueberry</b> planner · 2026</div>
+  <nav id="nav">
+    <button class="navbtn" data-go="year">Year</button>
+    <button class="navbtn" data-go="month">Month</button>
+  </nav>
+
+  <!-- COVER -->
+
+  <!-- YEAR -->
+  <section id="page-year" class="page">
+    <div id="yearHead"><h1 class="title-xl">2026</h1><p>twelve months, gently out of focus</p></div>
+    <div id="yearGrid"></div>
+    <aside id="upcoming" class="card">
+      <div class="eyebrow">Coming up</div>
+      <h3>Next on the vine</h3>
+      <div id="upList"></div>
+    </aside>
+  </section>
+
+  <!-- MONTH -->
+  <section id="page-month" class="page">
+    <div id="monthHead">
+      <div><h1 class="title-xl" style="display:inline"><span id="mName"></span></h1><span class="yr" id="mYear"></span></div>
+      <div class="arrows"><button class="arrow" id="prevM" aria-label="Previous month">←</button><button class="arrow" id="nextM" aria-label="Next month">→</button></div>
+    </div>
+    <div id="monthGrid"></div>
+    <div id="side">
+      <div id="weather" class="card"></div>
+      <div id="chat" class="card">
+        <div class="ch"><div class="ava"></div><div><b>Berry</b><small id="aiStatus">your planning assistant</small></div></div>
+        <div id="msgs"></div>
+        <div id="chips"></div>
+        <form id="chatForm" autocomplete="off">
+          <input id="chatInput" placeholder="e.g. I have a meet up with my friend on 11/10" aria-label="Message the assistant">
+          <button id="sendBtn" type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- DAY MODAL -->
+  <div id="modal">
+    <div id="dayCard" class="card" role="dialog" aria-modal="true" aria-labelledby="dayTitle">
+      <button id="closeBtn" aria-label="Close">✕</button>
+      <div class="eyebrow" id="dayEyebrow"></div>
+      <h2 id="dayTitle"></h2>
+      <div class="wxline" id="dayWx"></div>
+      <div id="dayList"></div>
+      <form id="dayForm" autocomplete="off">
+        <input type="time" id="evTime" aria-label="Time (optional)">
+        <input type="text" id="evTitle" placeholder="Add a plan…" aria-label="Plan title">
+        <button type="submit">Add</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="grain"></div>
+</div>
+
+<script>
+(() => {
+const W = 1440, H = 900, YEAR = 2026;
+const $ = s => document.querySelector(s);
+const stage = $('#stage');
+const T0 = performance.now();
+let loadPct = 0;
+function loadStep(pct, txt){
+  const arc = document.getElementById('ldArc'); if (!arc || pct <= loadPct) return; loadPct = pct;
+  arc.style.strokeDashoffset = (263.9 * (1 - pct / 100)).toFixed(1);
+  document.getElementById('ldPct').textContent = Math.round(pct) + '%';
+  if (txt) document.getElementById('ldTxt').textContent = txt;
+}
+requestAnimationFrame(() => loadStep(12, 'opening your planner…'));
+let SCALE = 1;
+function fit(){ SCALE = Math.min(innerWidth / W, innerHeight / H); stage.style.setProperty('--s', SCALE); }
+addEventListener('resize', fit); fit();
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const pad = n => String(n).padStart(2, '0');
+const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const now = new Date();
+const TODAY = iso(now.getFullYear(), now.getMonth(), now.getDate());
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const fmtTime = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'pm' : 'am'; const hh = h % 12 || 12; return m ? `${hh}:${pad(m)}${ap}` : `${hh}${ap}`; };
+const longDate = s => { const d = parseISO(s); return `${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`; };
+
+/* Weather snapshot — Seoul, fetched 2026-11-12 (°C). The page cannot reach weather services live. */
+const WEATHER = { city: 'Seoul', asOf: 'Nov 12, 2026', current: { t: 13, text: 'Clear', cond: 'clear' },
+  days: [
+    { d:'2026-11-12', hi:16, lo:9,  cond:'clear', p:0 }, { d:'2026-11-13', hi:18, lo:9,  cond:'clear', p:0 },
+    { d:'2026-11-14', hi:14, lo:10, cond:'clear', p:0 }, { d:'2026-11-15', hi:16, lo:9,  cond:'clear', p:0 },
+    { d:'2026-11-16', hi:15, lo:9,  cond:'clear', p:0 }, { d:'2026-11-17', hi:14, lo:10, cond:'clear', p:0 },
+    { d:'2026-11-18', hi:10, lo:2,  cond:'clear', p:0 }, { d:'2026-11-19', hi:6,  lo:-1, cond:'clear', p:0 } ] };
+const wxFor = date => WEATHER.days.find(x => x.d === date);
+
+/* ---------- state + persistence ---------- */
+const COLORS = ['#8e9be6','#b39ce6','#86b8cf','#e6a3c0','#93c4a2','#efb38f'];
+const LS = 'bb-planner-events-v1';
+const state = { events: [], view: 'month', month: now.getFullYear() === YEAR ? now.getMonth() : 0, flash: null };
+try { const raw = localStorage.getItem(LS); if (raw) state.events = JSON.parse(raw) || []; } catch (e) {}
+
+let dbDoc = null, writing = false, pendingWrite = false;
+async function flushDb(){
+  if (!dbDoc) return;
+  if (writing) { pendingWrite = true; return; }
+  writing = true;
+  try { await dbDoc.set({ events: state.events, updated: Date.now() }); } catch (e) {}
+  writing = false;
+  if (pendingWrite) { pendingWrite = false; flushDb(); }
+}
+let saveT = null;
+function save(){
+  try { localStorage.setItem(LS, JSON.stringify(state.events)); } catch (e) {}
+  clearTimeout(saveT); saveT = setTimeout(flushDb, 350);
+}
+const dataReady = (async () => {
+  try {
+    if (!window.claude || !claude.use) return;
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    if (!db || !user) return;
+    const id = await user.id(); if (!id) return;
+    const doc = db.collection('data/users/' + id).doc('planner');
+    const snap = await Promise.race([doc.get(), new Promise(r => setTimeout(() => r('timeout'), 10000))]);
+    if (snap === 'timeout') return;
+    const data = snap && typeof snap.data === 'function' ? snap.data() : snap;
+    dbDoc = doc;
+    if (data && Array.isArray(data.events) && data.events.length) { state.events = data.events; sortEvents(); try { localStorage.setItem(LS, JSON.stringify(state.events)); } catch (e) {} renderAll(); }
+    else if (state.events.length) flushDb();
+  } catch (e) {}
+})();
+
+function sortEvents(){ state.events.sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))); }
+function byDate(){ const m = {}; for (const e of state.events) (m[e.date] ||= []).push(e); return m; }
+function validDate(s){ if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return false; const d = parseISO(s); return iso(d.getFullYear(), d.getMonth(), d.getDate()) === s; }
+function normTime(t){ if (!t) return ''; const m = String(t).match(/^(\d{1,2}):(\d{2})/); if (!m) return ''; const h = +m[1], mi = +m[2]; return h < 24 && mi < 60 ? `${pad(h)}:${pad(mi)}` : ''; }
+function addEvent({ date, title, time = '', note = '' }){
+  if (!validDate(date)) throw new Error('date must be YYYY-MM-DD');
+  title = String(title || '').trim().slice(0, 80) || 'Plan';
+  const ev = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date, title, time: normTime(time), note: String(note || '').slice(0, 200), color: COLORS[state.events.length % COLORS.length] };
+  state.events.push(ev); sortEvents(); save(); state.flash = date; renderAll(); return ev;
+}
+function updateEvent({ id, ...patch }){
+  const ev = state.events.find(e => e.id === id); if (!ev) throw new Error('no event with that id');
+  if (patch.date != null) { if (!validDate(patch.date)) throw new Error('date must be YYYY-MM-DD'); ev.date = patch.date; }
+  if (patch.time != null) ev.time = normTime(patch.time);
+  if (patch.title != null) ev.title = String(patch.title).slice(0, 80);
+  if (patch.note != null) ev.note = String(patch.note).slice(0, 200);
+  sortEvents(); save(); state.flash = ev.date; renderAll(); return ev;
+}
+function deleteEvent(id){ const i = state.events.findIndex(e => e.id === id); if (i < 0) throw new Error('no event with that id'); const [ev] = state.events.splice(i, 1); save(); renderAll(); return ev; }
+
+/* ---------- routing ---------- */
+function go(view, month){
+  if (month != null) state.month = Math.max(0, Math.min(11, month));
+  state.view = view;
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + view));
+  document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.go === view));
+  if (view === 'year') renderYear();
+  if (view === 'month') renderMonth();
+  const h = view === 'month' ? 'month-' + (state.month + 1) : view;
+  if (location.hash !== '#' + h) { try { history.replaceState(null, '', '#' + h); } catch (e) { location.hash = h; } }
+}
+function fromHash(){
+  const h = location.hash.replace('#', '');
+  const m = h.match(/^month-(\d{1,2})$/);
+  if (m) go('month', +m[1] - 1); else if (h === 'year') go('year'); else go('month');
+}
+addEventListener('hashchange', fromHash);
+document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
+
+
+/* ---------- year page ---------- */
+const GLOWS = ['#9aa7ec','#c49be0','#a8d0e6','#f0b6c8','#9fd1b4','#f3c59a'];
+function renderYear(){
+  const g = $('#yearGrid'); g.innerHTML = '';
+  const map = byDate();
+  for (let m = 0; m < 12; m++) {
+    const card = el('button', 'mini' + (now.getFullYear() === YEAR && now.getMonth() === m ? ' current' : ''));
+    const glow = el('div', 'glow'); glow.style.background = GLOWS[m % GLOWS.length]; card.append(glow);
+    const count = state.events.filter(e => e.date.startsWith(`${YEAR}-${pad(m + 1)}`)).length;
+    const mh = el('div', 'mh'); mh.append(el('span', 'mn', MONTHS[m]), el('span', 'mc', count ? `${count} plan${count > 1 ? 's' : ''}` : '')); card.append(mh);
+    const md = el('div', 'md');
+    'SMTWTFS'.split('').forEach(c => md.append(el('span', 'wd', c)));
+    const first = new Date(YEAR, m, 1).getDay(), dim = new Date(YEAR, m + 1, 0).getDate();
+    for (let i = 0; i < first; i++) md.append(el('span'));
+    for (let d = 1; d <= dim; d++) { const k = iso(YEAR, m, d); const s = el('span', (map[k] ? 'has ' : '') + (k === TODAY ? 'today' : ''), d); md.append(s); }
+    card.append(md);
+    card.setAttribute('aria-label', `${MONTHS[m]} ${YEAR}${count ? `, ${count} plans` : ''}`);
+    card.addEventListener('click', () => go('month', m));
+    g.append(card);
+  }
+  const ul = $('#upList'); ul.innerHTML = '';
+  const up = state.events.filter(e => e.date >= TODAY).slice(0, 10);
+  if (!up.length) ul.append(el('div', 'empty', 'Nothing planned yet. Open a month and tell Berry about your plans — "dinner with Mina on 11/12 at 7pm".'));
+  for (const e of up) {
+    const d = parseISO(e.date);
+    const b = el('button', 'up');
+    const dt = el('div', 'dt'); dt.append(el('small', null, MONTHS[d.getMonth()].slice(0, 3)), el('b', null, d.getDate()));
+    const tx = el('div', 'tx', e.title); tx.append(el('small', null, WD[d.getDay()] + (e.time ? ' · ' + fmtTime(e.time) : '')));
+    b.append(dt, tx);
+    b.addEventListener('click', () => { go('month', d.getMonth()); openDay(e.date); });
+    ul.append(b);
+  }
+}
+
+/* ---------- month page ---------- */
+function sunEl(cls){ return el('div', 'sun ' + cls); }
+function renderMonth(){
+  const m = state.month, map = byDate();
+  $('#mName').textContent = MONTHS[m]; $('#mYear').textContent = YEAR;
+  $('#prevM').disabled = m === 0; $('#nextM').disabled = m === 11;
+  const g = $('#monthGrid'); g.innerHTML = '';
+  const first = new Date(YEAR, m, 1).getDay(), dim = new Date(YEAR, m + 1, 0).getDate();
+  const rows = Math.ceil((first + dim) / 7);
+  g.style.gridTemplateRows = `22px repeat(${rows}, 1fr)`;
+  WD.forEach(w => g.append(el('div', 'wdh', w)));
+  const maxChips = rows === 6 ? 2 : 3;
+  for (let i = 0; i < rows * 7; i++) {
+    const d = i - first + 1;
+    if (d < 1 || d > dim) { g.append(el('div', 'cell blank')); continue; }
+    const k = iso(YEAR, m, d);
+    const c = el('button', 'cell' + (k === TODAY ? ' today' : '') + (state.flash === k ? ' flash' : ''));
+    const top = el('div', 'top'); top.append(el('span', 'num', d));
+    const w = wxFor(k); if (w) { const wx = el('span', 'wx'); wx.append(sunEl('xs'), document.createTextNode(w.hi + '°')); top.append(wx); }
+    c.append(top);
+    const evs = map[k] || [];
+    evs.slice(0, maxChips).forEach(e => { const ch = el('div', 'chip'); const dot = el('i'); dot.style.background = e.color; ch.append(dot); if (e.time) ch.append(el('em', null, fmtTime(e.time))); ch.append(el('span', null, e.title)); c.append(ch); });
+    if (evs.length > maxChips) c.append(el('div', 'more', `+${evs.length - maxChips} more`));
+    c.setAttribute('aria-label', `${longDate(k)}${evs.length ? `, ${evs.length} plans` : ''}`);
+    c.addEventListener('click', () => openDay(k));
+    g.append(c);
+  }
+  state.flash = null;
+}
+$('#prevM').addEventListener('click', () => go('month', state.month - 1));
+$('#nextM').addEventListener('click', () => go('month', state.month + 1));
+
+function renderWeather(){
+  const w = $('#weather'); w.innerHTML = '';
+  w.append(el('div', 'eyebrow', 'Weather · ' + WEATHER.city));
+  const nowRow = el('div', 'now'); nowRow.append(sunEl('big'), el('div', 'temp', WEATHER.current.t + '°'));
+  const desc = el('div', 'desc'); desc.append(el('b', null, WEATHER.current.text)); desc.append(document.createElement('br'));
+  const today = wxFor(TODAY); desc.append(document.createTextNode(today ? `H ${today.hi}° · L ${today.lo}° · ${today.p}% rain` : 'Clear skies ahead'));
+  nowRow.append(desc); w.append(nowRow);
+  const strip = el('div', 'strip');
+  WEATHER.days.filter(x => x.d >= TODAY).slice(0, 7).forEach(x => {
+    const d = parseISO(x.d); const c = el('div', x.d === TODAY ? 'on' : '');
+    c.append(document.createTextNode(x.d === TODAY ? 'Today' : WD[d.getDay()]), sunEl('sm'), el('b', null, x.hi + '°'));
+    c.append(document.createTextNode(x.lo + '°')); strip.append(c);
+  });
+  w.append(strip);
+  w.append(el('div', 'foot', `Forecast snapshot from ${WEATHER.asOf}, °C. Ask Claude to refresh it.`));
+}
+
+/* ---------- day modal ---------- */
+let openDate = null;
+function openDay(date){
+  openDate = date;
+  const d = parseISO(date);
+  $('#dayEyebrow').textContent = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  $('#dayTitle').textContent = longDate(date);
+  const wx = $('#dayWx'); wx.innerHTML = '';
+  const w = wxFor(date); if (w) { wx.append(sunEl('sm'), document.createTextNode(`Sunny · ${w.hi}° / ${w.lo}° · ${w.p}% chance of rain`)); }
+  renderDayList();
+  $('#modal').classList.add('open');
+  setTimeout(() => $('#evTitle').focus(), 50);
+}
+function renderDayList(){
+  const list = $('#dayList'); list.innerHTML = '';
+  const evs = state.events.filter(e => e.date === openDate);
+  if (!evs.length) list.append(el('div', 'empty', 'An empty day. Add a plan below.'));
+  evs.forEach(e => {
+    const r = el('div', 'ev'); const dot = el('i'); dot.style.background = e.color;
+    const t = el('div', 't', e.title); t.append(el('small', null, (e.time ? fmtTime(e.time) : 'Any time') + (e.note ? ' · ' + e.note : '')));
+    const del = el('button', null, 'Remove'); del.addEventListener('click', () => { deleteEvent(e.id); renderDayList(); });
+    r.append(dot, t, del); list.append(r);
+  });
+}
+function closeDay(){ $('#modal').classList.remove('open'); openDate = null; }
+$('#closeBtn').addEventListener('click', closeDay);
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeDay(); });
+$('#dayForm').addEventListener('submit', e => {
+  e.preventDefault(); const title = $('#evTitle').value.trim(); if (!title || !openDate) return;
+  addEvent({ date: openDate, title, time: $('#evTime').value }); $('#evTitle').value = ''; $('#evTime').value = ''; renderDayList();
+});
+addEventListener('keydown', e => {
+  if (e.key === 'Escape' && openDate) closeDay();
+  if (state.view === 'month' && !openDate && document.activeElement.tagName !== 'INPUT') {
+    if (e.key === 'ArrowLeft' && state.month > 0) go('month', state.month - 1);
+    if (e.key === 'ArrowRight' && state.month < 11) go('month', state.month + 1);
+  }
+});
+
+/* ---------- AI assistant ---------- */
+const msgs = $('#msgs');
+function bubble(cls, text){ const b = el('div', 'msg ' + cls, text); msgs.append(b); msgs.scrollTop = msgs.scrollHeight; return b; }
+bubble('bot', "Hi! I'm Berry. Tell me about your plans and I'll put them on the calendar — like \"I have a meet up with my friend on 11/10\".");
+const SUGS = ['Lunch with my friend tomorrow at noon', 'Dentist next Friday at 3pm', "What's on this week?", 'Will it be sunny on 11/12?'];
+SUGS.forEach(s => { const b = el('button', 'sug', s); b.type = 'button'; b.addEventListener('click', () => send(s)); $('#chips').append(b); });
+
+const history_ = [];
+let samplePromise = null, sampleOff = false;
+function getSample(){ if (sampleOff || !window.claude || !claude.use) return Promise.resolve(null); return samplePromise ||= claude.use('sample').catch(() => null); }
+
+const TOOLS = [
+  { name: 'add_event', description: 'Add a plan to the calendar.', inputSchema: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD' }, title: { type: 'string', description: 'Short title, e.g. "Meet up with friend"' }, time: { type: 'string', description: 'HH:MM 24h, or empty if unknown' }, note: { type: 'string' } }, required: ['date', 'title'] },
+    execute: i => { const ev = addEvent(i); jumpTo(ev.date); return { ok: true, event: ev }; } },
+  { name: 'list_events', description: 'List calendar plans, optionally between two dates (inclusive).', inputSchema: { type: 'object', properties: { from: { type: 'string' }, to: { type: 'string' } } },
+    execute: ({ from = '0000', to = '9999' } = {}) => state.events.filter(e => e.date >= from && e.date <= to).slice(0, 60) },
+  { name: 'update_event', description: 'Change an existing plan by id (date, time, title or note).', inputSchema: { type: 'object', properties: { id: { type: 'string' }, date: { type: 'string' }, time: { type: 'string' }, title: { type: 'string' }, note: { type: 'string' } }, required: ['id'] },
+    execute: i => { const ev = updateEvent(i); jumpTo(ev.date); return { ok: true, event: ev }; } },
+  { name: 'delete_event', description: 'Delete a plan by id.', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+    execute: ({ id }) => ({ ok: true, deleted: deleteEvent(id) }) },
+  { name: 'get_weather', description: 'Weather forecast snapshot for Seoul in °C (only covers the listed days).', inputSchema: { type: 'object', properties: {} },
+    execute: () => WEATHER },
+];
+function jumpTo(date){ const d = parseISO(date); if (d.getFullYear() === YEAR && state.view === 'month' && d.getMonth() !== state.month) { state.flash = date; go('month', d.getMonth()); } }
+
+function preamble(){
+  const d = new Date();
+  return `You are Berry, a warm, concise planning assistant inside the user's personal 2026 planner.
+Today is ${WD[d.getDay()]} ${TODAY} (time zone ${Intl.DateTimeFormat().resolvedOptions().timeZone}).
+Use the tools to add, update, delete or look up plans. Never say you changed the calendar unless a tool call succeeded.
+Dates like "11/10" mean month/day. If no year is given, use 2026. Resolve relative dates ("tomorrow", "next Friday") from today.
+Leave time empty if the user didn't give one. Make titles short and natural (e.g. "Meet up with friend").
+For weather, call get_weather; if a date isn't covered, say the forecast doesn't reach that far yet.
+Reply in 1–3 short plain-text sentences, no markdown. Confirm what you did with the weekday and date.
+Current plans (JSON): ${JSON.stringify(state.events.map(({ id, date, time, title }) => ({ id, date, time, title })))}`;
+}
+
+let busy = false;
+async function send(text){
+  text = (text || '').trim(); if (!text || busy) return;
+  busy = true; $('#sendBtn').disabled = true; $('#chatInput').value = '';
+  bubble('user', text);
+  $('#chips').style.display = 'none';
+  history_.push({ role: 'user', content: text });
+  const bot = bubble('bot typing', 'Thinking…');
+  let reply = null;
+  const sample = await getSample();
+  if (sample) {
+    try {
+      const msgsIn = history_.slice(-12).map(m => ({ ...m }));
+      while (msgsIn.length && msgsIn[0].role !== 'user') msgsIn.shift();
+      msgsIn[msgsIn.length - 1].content = preamble() + '\n\nUser message: ' + text;
+      const res = await sample(msgsIn, { cache: false, tools: TOOLS, modelTier: 'quick',
+        onText: ({ text: t }) => { if (t && t !== 'Thinking...') { bot.classList.remove('typing'); bot.textContent = t; msgs.scrollTop = msgs.scrollHeight; } } });
+      reply = (res && res.text || '').trim();
+      $('#aiStatus').textContent = 'your planning assistant · Claude';
+    } catch (err) {
+      if (err && err.code === 'not_granted') { sampleOff = true; $('#aiStatus').textContent = 'offline mode — simple date parsing'; }
+      else if (err && err.code === 'rate_limited') { bubble('note', 'Claude is busy — using simple parsing for now.'); }
+    }
+  }
+  if (!reply) reply = localAgent(text);
+  bot.classList.remove('typing'); bot.textContent = reply;
+  history_.push({ role: 'assistant', content: reply });
+  msgs.scrollTop = msgs.scrollHeight;
+  busy = false; $('#sendBtn').disabled = false; $('#chatInput').focus();
+}
+$('#chatForm').addEventListener('submit', e => { e.preventDefault(); send($('#chatInput').value); });
+
+/* Fallback: simple local parser when Claude isn't available */
+const MON_RE = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i;
+const DOW = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+function localAgent(text){
+  let t = ' ' + text + ' ', lower = text.toLowerCase();
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let date = null, m;
+  if ((m = t.match(/\b(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\b/))) {
+    const y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : YEAR;
+    date = iso(y, +m[1] - 1, +m[2]); t = t.replace(m[0], ' ');
+  } else if ((m = t.match(MON_RE))) {
+    const mi = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[1].slice(0, 3).toLowerCase());
+    date = iso(YEAR, mi, +m[2]); t = t.replace(m[0], ' ');
+  } else if (/\btomorrow\b/i.test(t)) { const d = new Date(base); d.setDate(d.getDate() + 1); date = iso(d.getFullYear(), d.getMonth(), d.getDate()); t = t.replace(/\btomorrow\b/i, ' '); }
+  else if (/\b(today|tonight)\b/i.test(t)) { date = TODAY; t = t.replace(/\b(today|tonight)\b/i, ' '); }
+  else if ((m = t.match(/\b(next\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i))) {
+    const want = DOW.indexOf(m[2].toLowerCase()); const d = new Date(base); let diff = (want - d.getDay() + 7) % 7 || 7; if (m[1] && /next/i.test(m[1]) && diff < 7) diff += 0; d.setDate(d.getDate() + diff);
+    date = iso(d.getFullYear(), d.getMonth(), d.getDate()); t = t.replace(m[0], ' ');
+  }
+  const asksList = /\b(what('?s| is)|show|list|anything)\b.*\b(on|planned|schedule|week|today|tomorrow|plans?)\b/i.test(lower) && !/\b(have|add|book|schedule a|meet)\b/i.test(lower);
+  if (/\b(weather|sunny|rain|cold|warm|temperature)\b/i.test(lower)) {
+    const w = date ? wxFor(date) : wxFor(TODAY);
+    if (w) return `${longDate(w.d)} in Seoul: sunny, ${w.hi}° / ${w.lo}°, ${w.p}% chance of rain.`;
+    return `My forecast snapshot only covers ${longDate(WEATHER.days[0].d)} to ${longDate(WEATHER.days[WEATHER.days.length - 1].d)}, so I can't say for that day yet.`;
+  }
+  if (asksList) {
+    const end = new Date(base); end.setDate(end.getDate() + 7); const endK = iso(end.getFullYear(), end.getMonth(), end.getDate());
+    const evs = state.events.filter(e => e.date >= TODAY && e.date <= endK);
+    if (!evs.length) return 'Nothing planned for the next 7 days.';
+    return 'Coming up:\n' + evs.map(e => `• ${WD[parseISO(e.date).getDay()]} ${parseISO(e.date).getMonth() + 1}/${parseISO(e.date).getDate()}${e.time ? ' ' + fmtTime(e.time) : ''} — ${e.title}`).join('\n');
+  }
+  if (!date || !validDate(date)) return 'I couldn\'t spot a date in that. Try something like "dinner with Mina on 11/12 at 7pm".';
+  let time = '';
+  if ((m = t.match(/\b(?:at\s*)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i))) { let h = +m[1] % 12; if (/pm/i.test(m[3])) h += 12; time = `${pad(h)}:${m[2] || '00'}`; t = t.replace(m[0], ' '); }
+  else if ((m = t.match(/\b(?:at\s*)?(\d{1,2}):(\d{2})\b/))) { time = `${pad(+m[1])}:${m[2]}`; t = t.replace(m[0], ' '); }
+  else if ((m = t.match(/\b(noon)\b/i))) { time = '12:00'; t = t.replace(m[0], ' '); }
+  let title = t.replace(/\s+/g, ' ').trim()
+    .replace(/^(please\s+)?(add|schedule|book|put|remind me (of|about)?|note)\s+/i, '')
+    .replace(/^(i|we)('ve|\s+have|\s+has|\s+got|'m|\s+am|\s+are|\s+will)?\s+(got\s+)?(having\s+|going to\s+|have\s+)?/i, '')
+    .replace(/^(there('s| is)\s+)/i, '').replace(/^(a|an|the|my)\s+/i, '')
+    .replace(/\s+(on|at|for|this|next|the)\s*$/i, '').replace(/\s+(on|at|for)\s*$/i, '').replace(/[.,!?\s]+$/, '').trim();
+  if (!title) title = 'Plan';
+  title = title.charAt(0).toUpperCase() + title.slice(1);
+  const ev = addEvent({ date, title, time }); jumpTo(ev.date);
+  return `Added "${ev.title}" on ${longDate(ev.date)}${ev.time ? ' at ' + fmtTime(ev.time) : ''}.`;
+}
+
+function renderAll(){ if (state.view === 'year') renderYear(); if (state.view === 'month') renderMonth(); if (openDate) renderDayList(); }
+renderWeather();
+fromHash();
+loadStep(45, 'laying out the month…');
+(async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  await Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), wait(2500)]);
+  loadStep(72, 'checking the weather…');
+  await Promise.race([dataReady, wait(3000)]);
+  loadStep(100, 'ready');
+  await wait(Math.max(450, 1400 - (performance.now() - T0)));
+  const ld = document.getElementById('loader'); ld.classList.add('done'); ld.setAttribute('aria-hidden', 'true');
+  setTimeout(() => ld.remove(), 1000);
+})();
+})();
+</script>
+</body>
+</html>

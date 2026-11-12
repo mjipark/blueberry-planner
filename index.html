@@ -652,7 +652,7 @@ Use the tools to add, update, delete or look up plans. Never say you changed the
 Dates like "11/10" mean month/day. If no year is given, use the next time that date comes around (on or after today). Resolve relative dates ("tomorrow", "next Friday") from today.
 Leave time empty if the user didn't give one. Make titles short and natural (e.g. "Meet up with friend").
 For weather, call get_weather; if a date isn't covered, say the forecast doesn't reach that far yet.
-Reply in 1–3 short plain-text sentences, no markdown. Confirm what you did with the weekday and date.
+Reply in the user's language (Korean if they write Korean) in 1–3 short plain-text sentences, no markdown. For a repeating plan ("every Monday"), add each date with add_event. Confirm what you did with the weekday and date.
 Current plans (JSON): ${JSON.stringify(state.events.map(({ id, date, time, title }) => ({ id, date, time, title })))}`;
 }
 
@@ -671,7 +671,7 @@ async function send(text){
       const msgsIn = history_.slice(-12).map(m => ({ ...m }));
       while (msgsIn.length && msgsIn[0].role !== 'user') msgsIn.shift();
       msgsIn[msgsIn.length - 1].content = preamble() + '\n\nUser message: ' + text;
-      const res = await sample(msgsIn, { cache: false, tools: TOOLS, modelTier: 'quick',
+      const res = await sample(msgsIn, { cache: false, tools: TOOLS, modelTier: 'default',
         onText: ({ text: t }) => { if (t && t !== 'Thinking...') { bot.classList.remove('typing'); bot.textContent = t; msgs.scrollTop = msgs.scrollHeight; } } });
       reply = (res && res.text || '').trim();
       $('#aiStatus').textContent = 'your planning assistant · Claude';
@@ -688,52 +688,212 @@ async function send(text){
 }
 $('#chatForm').addEventListener('submit', e => { e.preventDefault(); send($('#chatInput').value); });
 
-/* Fallback: simple local parser when Claude isn't available */
-const MON_RE = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i;
+/* ---------- Berry without Claude: an offline assistant ----------
+   Understands English and Korean. Works out what you want first (add, cancel, move,
+   look something up, weather, chat), then reads dates and times, then the title. */
+const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const DOW = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+const KDOW = ['일','월','화','수','목','금','토'];
+const MON_NAME = 'jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?';
+const DOW_NAME = '(sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)(?:day|nesday|rsday|urday|sday)?';
+const today0 = () => new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const isoD = d => iso(d.getFullYear(), d.getMonth(), d.getDate());
 // a month/day with no year: the next time it comes around, from today
-function nextOcc(mi, d){ let y = now.getFullYear(); const k = iso(y, mi, d); return k >= TODAY ? k : iso(y + 1, mi, d); }
+function nextOcc(mi, d){ const y = now.getFullYear(); const k = iso(y, mi, d); return k >= TODAY ? k : iso(y + 1, mi, d); }
+// "the 25th" / "25일": this month if it's still ahead, otherwise next month
+function nextDayOfMonth(d){ const t = today0(); let y = t.getFullYear(), m = t.getMonth(); if (d < t.getDate()) { m++; if (m > 11) { m = 0; y++; } } return iso(y, m, d); }
+const dowIndex = s => { s = s.toLowerCase(); return DOW.findIndex(d => d.startsWith(s.slice(0, 3))); };
+// weekday: bare/"this" = the coming one (not today), "next" = the one in next week (weeks start Monday)
+function weekdayDate(want, mode){
+  const t = today0(), cur = t.getDay();
+  if (mode === 'next') { const mon = addDays(t, ((8 - cur) % 7) || 7); return isoD(addDays(mon, (want + 6) % 7)); }
+  if (mode === 'this') { const mon = addDays(t, -((cur + 6) % 7)); const d = addDays(mon, (want + 6) % 7); return isoD(d < t ? addDays(d, 7) : d); }
+  return isoD(addDays(t, ((want - cur + 7) % 7) || 7));
+}
+const hasHangul = s => /[가-힣]/.test(s);
+// Korean particles depend on whether the word ends in a consonant (받침)
+const batchim = w => { const c = String(w).trim().slice(-1).charCodeAt(0); return c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 !== 0 : /[013678lmnr]$/i.test(String(w).trim()); };
+const eul = w => `"${w}"${batchim(w) ? '을' : '를'}`, eun = w => `"${w}"${batchim(w) ? '은' : '는'}`;
+const ro = w => { const c = String(w).trim().slice(-1).charCodeAt(0); const b = c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 : 0; return w + (b && b !== 8 ? '으로' : '로'); };
+
+// Pull a date (and the text it used) out of s. Returns { date, rest, every, until }.
+function takeDate(s){
+  let m, date = null, every = null, until = null;
+  const cut = r => { s = s.replace(r, ' '); };
+  // "until 12/20" / "12/20까지" for repeating plans
+  if ((m = s.match(/\buntil\s+(\d{1,2})[\/.](\d{1,2})\b/i)) || (m = s.match(/(\d{1,2})[\/.](\d{1,2})\s*까지/))) { until = nextOcc(+m[1] - 1, +m[2]); cut(m[0]); }
+  else if ((m = s.match(new RegExp(`\\buntil\\s+(${MON_NAME})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`, 'i')))) { until = nextOcc(MONTH_KEYS.indexOf(m[1].slice(0, 3).toLowerCase()), +m[2]); cut(m[0]); }
+  else if ((m = s.match(/(\d{1,2})월\s*(\d{1,2})일\s*까지/))) { until = nextOcc(+m[1] - 1, +m[2]); cut(m[0]); }
+  // repeating: "every monday" / "매주 월요일"
+  if ((m = s.match(new RegExp(`\\bevery\\s+${DOW_NAME}\\b`, 'i')))) { every = dowIndex(m[1]); cut(m[0]); }
+  else if ((m = s.match(/매주\s*([일월화수목금토])요일/))) { every = KDOW.indexOf(m[1]); cut(m[0]); }
+  if (every != null) return { date: weekdayDate(every), rest: s, every, until };
+
+  if ((m = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/))) date = iso(+m[1], +m[2] - 1, +m[3]);
+  else if ((m = s.match(/\b(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\b/))) date = m[3] ? iso(m[3].length === 2 ? 2000 + +m[3] : +m[3], +m[1] - 1, +m[2]) : nextOcc(+m[1] - 1, +m[2]);
+  else if ((m = s.match(/(?:(\d{4})년\s*)?(\d{1,2})월\s*(\d{1,2})일/))) date = m[1] ? iso(+m[1], +m[2] - 1, +m[3]) : nextOcc(+m[2] - 1, +m[3]);
+  else if ((m = s.match(new RegExp(`\\b(${MON_NAME})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?\\b`, 'i')))) { const mi = MONTH_KEYS.indexOf(m[1].slice(0, 3).toLowerCase()); date = m[3] ? iso(+m[3], mi, +m[2]) : nextOcc(mi, +m[2]); }
+  else if ((m = s.match(new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?(${MON_NAME})\\b`, 'i')))) date = nextOcc(MONTH_KEYS.indexOf(m[2].slice(0, 3).toLowerCase()), +m[1]);
+  else if ((m = s.match(/\b(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\b/i)) || (m = s.match(/\bon\s+(\d{1,2})(?:st|nd|rd|th)\b/i)) || (m = s.match(/(?:^|\s)(\d{1,2})일(?!\s*까지)/))) date = nextDayOfMonth(+m[1]);
+  else if ((m = s.match(/\bday after tomorrow\b|모레/i))) date = isoD(addDays(today0(), 2));
+  else if ((m = s.match(/글피/))) date = isoD(addDays(today0(), 3));
+  else if ((m = s.match(/\btomorrow\b|내일/i))) date = isoD(addDays(today0(), 1));
+  else if ((m = s.match(/\b(today|tonight)\b|오늘/i))) date = TODAY;
+  else if ((m = s.match(/\bin\s+(\d{1,2})\s+days?\b|(\d{1,2})일\s*(?:뒤|후)/i))) date = isoD(addDays(today0(), +(m[1] || m[2])));
+  else if ((m = s.match(new RegExp(`\\b(next|this|coming)?\\s*${DOW_NAME}\\b`, 'i')))) { const mode = (m[1] || '').toLowerCase(); date = weekdayDate(dowIndex(m[2]), mode === 'next' ? 'next' : mode === 'this' ? 'this' : ''); }
+  else if ((m = s.match(/(다음\s*주|이번\s*주)?\s*([일월화수목금토])요일/))) date = weekdayDate(KDOW.indexOf(m[2]), m[1] && /다음/.test(m[1]) ? 'next' : m[1] ? 'this' : '');
+  if (date && m) cut(m[0]);
+  return { date: date && validDate(date) ? date : null, rest: s, every, until };
+}
+
+// Pull a time out of s. Returns { time, rest }.
+function takeTime(s){
+  let m, time = '';
+  const set = (h, mi = 0) => { time = `${pad(h)}:${pad(mi)}`; };
+  if ((m = s.match(/(오전|오후|아침|저녁|밤)?\s*(\d{1,2})시\s*(?:(\d{1,2})분|(반))?/))) {
+    let h = +m[2]; const mi = m[3] ? +m[3] : m[4] ? 30 : 0;
+    if (/오후|저녁|밤/.test(m[1] || '') && h < 12) h += 12; else if (!m[1] && h >= 1 && h <= 7) h += 12; else if (/오전|아침/.test(m[1] || '') && h === 12) h = 0;
+    set(h, mi);
+  }
+  else if ((m = s.match(/\b(?:at\s*)?(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)(?=\W|$)/i))) { let h = +m[1] % 12; if (/p/i.test(m[3])) h += 12; set(h, +(m[2] || 0)); }
+  else if ((m = s.match(/\b(?:at\s*)?(\d{1,2}):(\d{2})\b/))) set(+m[1], +m[2]);
+  else if ((m = s.match(/\bat\s+(\d{1,2})(?!\s*[\/.\d])(?:\s*o'?clock)?\b/i))) { let h = +m[1]; if (h >= 1 && h <= 7) h += 12; set(h % 24); }
+  else if ((m = s.match(/\b(noon|midday)\b|정오|점심/i))) set(12);
+  else if ((m = s.match(/\bmidnight\b|자정/i))) set(0);
+  else if ((m = s.match(/\b(?:in the\s+)?morning\b|아침|오전/i))) set(9);
+  else if ((m = s.match(/\b(?:in the\s+)?afternoon\b|오후/i))) set(14);
+  else if ((m = s.match(/\b(?:in the\s+)?evening\b|\btonight\b|저녁/i))) set(18);
+  else if ((m = s.match(/\bat night\b|밤/i))) set(20);
+  if (m) s = s.replace(m[0], ' ');
+  return { time: time && normTime(time), rest: s };
+}
+
+// Tidy what's left into a short title.
+function cleanTitle(s){
+  let t = s.replace(/[?!.,]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const lead = /^(please|pls|hey berry|berry|can you|could you|i|we|i've|we've|i'm|we're|i am|we are|i have|we have|i've got|i got|i need to|i have to|i'll|i will|i'm going to|going to|gonna|have|has|got|having|add|schedule|book|put|set|create|make|note|remind me to|remind me about|remind me of|remind me|a|an|the|my|our|some|there's|there is|there will be|to|for|on|at)\s+/i;
+  for (let i = 0; i < 8 && lead.test(t); i++) t = t.replace(lead, '');
+  t = t.replace(/\s+(on|at|for|in|this|next|the|by|from|with|and|of)$/i, '').replace(/\s+(on|at|for|in|this|next|the|by|from)$/i, '');
+  t = t.replace(/\s*(추가해\s*줘|추가해\s*주세요|추가|넣어\s*줘|잡아\s*줘|등록해\s*줘|일정\s*있어|있어|있음|있다|해야\s*해|해야\s*함|예정|이야|이에요|입니다)$/, '').replace(/^(나|저|난|전)\s+/, '').replace(/\s+(에|에는|부터|까지)$/, '').trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
+}
+
+// Find the plan someone is talking about ("the dentist", "dinner with mom").
+const STOP = new Set(['the','a','an','my','with','on','at','to','for','and','of','in','plan','plans','event']);
+const words = s => (s.toLowerCase().match(/[a-z0-9가-힣]+/g) || []).filter(w => w.length > 1 && !STOP.has(w));
+function findPlan(query, date){
+  const q = words(query); if (!q.length && !date) return { match: null, many: [] };
+  let pool = state.events.filter(e => !date || e.date === date);
+  const scored = pool.map(e => { const tw = words(e.title); const sc = q.reduce((n, w) => n + (tw.some(x => x === w || x.startsWith(w) || w.startsWith(x)) ? 1 : 0), 0); return { e, sc }; })
+    .filter(x => x.sc > 0 || (!q.length && date));
+  if (!scored.length) return { match: null, many: [] };
+  const top = Math.max(...scored.map(x => x.sc));
+  const best = scored.filter(x => x.sc === top).map(x => x.e);
+  const upcoming = best.filter(e => e.date >= TODAY);
+  const pick = (upcoming.length ? upcoming : best).sort((a, b) => a.date.localeCompare(b.date));
+  return { match: pick[0], many: pick };
+}
+
+const fmtShort = (k, ko) => { const d = parseISO(k); return ko ? `${d.getMonth() + 1}월 ${d.getDate()}일 (${KDOW[d.getDay()]})` : `${WD[d.getDay()]} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`; };
+const fmtTimeKo = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}시${m ? ' ' + m + '분' : ''}`; };
+const whenText = (e, ko) => fmtShort(e.date, ko) + (e.time ? (ko ? ' ' + fmtTimeKo(e.time) : ' at ' + fmtTime(e.time)) : '');
+const listText = (evs, ko) => evs.map(e => `• ${fmtShort(e.date, ko)}${e.time ? ' ' + (ko ? fmtTimeKo(e.time) : fmtTime(e.time)) : ''} — ${e.title}`).join('\n');
+
+function rangeFor(s){
+  const t = today0(), mon = addDays(t, -((t.getDay() + 6) % 7));
+  if (/next\s+week|다음\s*주/i.test(s)) return [isoD(addDays(mon, 7)), isoD(addDays(mon, 13)), 'next week', '다음 주'];
+  if (/this\s+week|이번\s*주/i.test(s)) return [TODAY, isoD(addDays(mon, 6)), 'this week', '이번 주'];
+  if (/next\s+month|다음\s*달/i.test(s)) { const a = new Date(t.getFullYear(), t.getMonth() + 1, 1), b = new Date(t.getFullYear(), t.getMonth() + 2, 0); return [isoD(a), isoD(b), 'next month', '다음 달']; }
+  if (/this\s+month|이번\s*달/i.test(s)) { const b = new Date(t.getFullYear(), t.getMonth() + 1, 0); return [TODAY, isoD(b), 'this month', '이번 달']; }
+  return null;
+}
+
 function localAgent(text){
-  let t = ' ' + text + ' ', lower = text.toLowerCase();
-  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let date = null, m;
-  if ((m = t.match(/\b(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\b/))) {
-    date = m[3] ? iso(m[3].length === 2 ? 2000 + +m[3] : +m[3], +m[1] - 1, +m[2]) : nextOcc(+m[1] - 1, +m[2]); t = t.replace(m[0], ' ');
-  } else if ((m = t.match(MON_RE))) {
-    const mi = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[1].slice(0, 3).toLowerCase());
-    date = nextOcc(mi, +m[2]); t = t.replace(m[0], ' ');
-  } else if (/\btomorrow\b/i.test(t)) { const d = new Date(base); d.setDate(d.getDate() + 1); date = iso(d.getFullYear(), d.getMonth(), d.getDate()); t = t.replace(/\btomorrow\b/i, ' '); }
-  else if (/\b(today|tonight)\b/i.test(t)) { date = TODAY; t = t.replace(/\b(today|tonight)\b/i, ' '); }
-  else if ((m = t.match(/\b(next\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i))) {
-    const want = DOW.indexOf(m[2].toLowerCase()); const d = new Date(base); let diff = (want - d.getDay() + 7) % 7 || 7; if (m[1] && /next/i.test(m[1]) && diff < 7) diff += 0; d.setDate(d.getDate() + diff);
-    date = iso(d.getFullYear(), d.getMonth(), d.getDate()); t = t.replace(m[0], ' ');
+  const raw = text.trim(), lower = raw.toLowerCase(), ko = hasHangul(raw);
+  const T = (en, kr) => ko ? kr : en;
+
+  // 1. greetings / help
+  if (/^(hi|hello|hey|yo|안녕|하이|헬로)\b|^(help|도움말?|뭐\s*할\s*수)/i.test(lower) && !takeDate(raw).date)
+    return T("Hi! Tell me a plan and I'll add it — \"dinner with Mina on 12/5 at 7pm\", \"gym every Monday\", \"cancel the dentist\", \"move lunch to Friday\", \"what's on next week?\"",
+             '안녕하세요! 일정을 말해 주시면 추가할게요 — "12월 5일 저녁 7시 민아랑 저녁", "매주 월요일 헬스", "치과 취소", "점심 금요일로 옮겨", "다음 주 일정 뭐 있어?"');
+
+  // 2. weather
+  if (/\b(weather|sunny|rain|raining|snow|cold|warm|hot|temperature|umbrella)\b|날씨|비 와|비와|눈 와|우산|기온|덥|춥/i.test(lower)) {
+    const { date } = takeDate(raw); const w = wxFor(date || TODAY);
+    if (w) return ko ? `${fmtShort(w.d, true)} 서울: ${({ clear: '맑음', cloudy: '흐림', rain: '비', snow: '눈' })[w.cond] || '맑음'}, 최고 ${w.hi}° / 최저 ${w.lo}°, 강수확률 ${w.p}%.` : `${longDate(w.d)} in Seoul: ${wxText(w).toLowerCase()}, ${w.hi}° / ${w.lo}°, ${w.p}% chance of rain.`;
+    return T(`My forecast only reaches ${fmtShort(WEATHER.days[WEATHER.days.length - 1].d)}, so I can't say for that day yet.`, `예보는 ${fmtShort(WEATHER.days[WEATHER.days.length - 1].d, true)}까지만 있어요.`);
   }
-  const asksList = /\b(what('?s| is)|show|list|anything)\b.*\b(on|planned|schedule|week|today|tomorrow|plans?)\b/i.test(lower) && !/\b(have|add|book|schedule a|meet)\b/i.test(lower);
-  if (/\b(weather|sunny|rain|cold|warm|temperature)\b/i.test(lower)) {
-    const w = date ? wxFor(date) : wxFor(TODAY);
-    if (w) return `${longDate(w.d)} in Seoul: ${wxText(w).toLowerCase()}, ${w.hi}° / ${w.lo}°, ${w.p}% chance of rain.`;
-    return `My forecast snapshot only covers ${longDate(WEATHER.days[0].d)} to ${longDate(WEATHER.days[WEATHER.days.length - 1].d)}, so I can't say for that day yet.`;
+
+  // 3. cancel / delete
+  if (/\b(cancel|delete|remove|drop|scrap|clear|erase|get rid of)\b|취소|삭제|지워|빼\s*줘|없애/i.test(lower)) {
+    const { date, rest } = takeDate(raw);
+    const q = rest.replace(/\b(cancel|delete|remove|drop|scrap|clear|erase|get rid of|please|my|the|plan|event)\b|취소|삭제|지워\s*줘?|빼\s*줘|없애\s*줘?|일정|해\s*줘|해\s*주세요/gi, ' ');
+    const { match, many } = findPlan(q, date);
+    if (!match) return T("I couldn't find that plan. Try its name, like \"cancel the dentist\" or \"delete lunch on 12/1\".", '그 일정을 못 찾았어요. "치과 취소"나 "12월 1일 점심 삭제"처럼 말해 주세요.');
+    if (many.length > 1 && !date && many.some(e => e.title.toLowerCase() !== match.title.toLowerCase()))
+      return T(`Which one?\n${listText(many.slice(0, 5))}\nSay it with the date, like "cancel ${many[0].title} on ${parseISO(many[0].date).getMonth() + 1}/${parseISO(many[0].date).getDate()}".`, `어떤 일정인가요?\n${listText(many.slice(0, 5), true)}`);
+    const same = state.events.filter(e => e.title.toLowerCase() === match.title.toLowerCase() && e.date >= TODAY);
+    if (/\b(all|every|each)\b|모든|전부|모두|다\s*(취소|삭제|지워)/i.test(lower) && same.length > 1) {
+      same.forEach(e => deleteEvent(e.id));
+      return T(`Removed all ${same.length} upcoming "${match.title}" plans.`, `앞으로 있는 "${match.title}" 일정 ${same.length}개를 모두 삭제했어요.`);
+    }
+    deleteEvent(match.id);
+    const left = same.length - 1;
+    return T(`Removed "${match.title}" on ${whenText(match)}.${left > 0 ? ` ${left} more "${match.title}" plan${left > 1 ? 's are' : ' is'} still on — say "delete all ${match.title.toLowerCase()}" to clear them.` : ''}`,
+             `${whenText(match, true)} "${match.title}" 일정을 삭제했어요.${left > 0 ? ` 같은 일정이 ${left}개 더 있어요 — "${match.title} 전부 삭제"라고 하면 모두 지울게요.` : ''}`);
   }
-  if (asksList) {
-    const end = new Date(base); end.setDate(end.getDate() + 7); const endK = iso(end.getFullYear(), end.getMonth(), end.getDate());
-    const evs = state.events.filter(e => e.date >= TODAY && e.date <= endK);
-    if (!evs.length) return 'Nothing planned for the next 7 days.';
-    return 'Coming up:\n' + evs.map(e => `• ${WD[parseISO(e.date).getDay()]} ${parseISO(e.date).getMonth() + 1}/${parseISO(e.date).getDate()}${e.time ? ' ' + fmtTime(e.time) : ''} — ${e.title}`).join('\n');
+
+  // 4. move / reschedule
+  if (/\b(move|reschedule|push|postpone|change|shift|bring forward)\b|옮겨|변경|바꿔|미뤄|당겨/i.test(lower)) {
+    let fromPart = raw, toPart = '';
+    if (ko) { const k = raw.match(/^(.*?)(?:을|를)\s*(.+?)\s*(?:로|으로)\s*(?:옮겨|변경|바꿔|미뤄|당겨)/) || raw.match(/^(.*?)\s+(\S.*?)\s*(?:로|으로)\s*(?:옮겨|변경|바꿔|미뤄|당겨)/); if (k) { fromPart = k[1]; toPart = k[2]; } }
+    else { const k = raw.match(/^(.*?)\bto\b(.*)$/i); if (k) { fromPart = k[1]; toPart = k[2]; } }
+    const fromD = takeDate(fromPart);
+    const q = fromD.rest.replace(/\b(move|reschedule|push|postpone|change|shift|bring forward|please|my|the|back)\b/gi, ' ');
+    const { match } = findPlan(q, fromD.date);
+    if (!match) return T("I couldn't find that plan to move. Try \"move dentist to Friday at 4pm\".", '옮길 일정을 못 찾았어요. "치과를 금요일 오후 4시로 옮겨"처럼 말해 주세요.');
+    const nd = takeDate(toPart), nt = takeTime(nd.rest);
+    if (!nd.date && !nt.time) return T(`When should "${match.title}" move to? Try "move ${match.title.toLowerCase()} to 12/8".`, `${eul(match.title)} 언제로 옮길까요?`);
+    updateEvent({ id: match.id, ...(nd.date ? { date: nd.date } : {}), ...(nt.time ? { time: nt.time } : {}) });
+    jumpTo(match.date);
+    return T(`Moved "${match.title}" to ${whenText(match)}.`, `${eul(match.title)} ${ro(whenText(match, true))} 옮겼어요.`);
   }
-  if (!date || !validDate(date)) return 'I couldn\'t spot a date in that. Try something like "dinner with Mina on 11/12 at 7pm".';
-  let time = '';
-  if ((m = t.match(/\b(?:at\s*)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i))) { let h = +m[1] % 12; if (/pm/i.test(m[3])) h += 12; time = `${pad(h)}:${m[2] || '00'}`; t = t.replace(m[0], ' '); }
-  else if ((m = t.match(/\b(?:at\s*)?(\d{1,2}):(\d{2})\b/))) { time = `${pad(+m[1])}:${m[2]}`; t = t.replace(m[0], ' '); }
-  else if ((m = t.match(/\b(noon)\b/i))) { time = '12:00'; t = t.replace(m[0], ' '); }
-  let title = t.replace(/\s+/g, ' ').trim()
-    .replace(/^(please\s+)?(add|schedule|book|put|remind me (of|about)?|note)\s+/i, '')
-    .replace(/^(i|we)('ve|\s+have|\s+has|\s+got|'m|\s+am|\s+are|\s+will)?\s+(got\s+)?(having\s+|going to\s+|have\s+)?/i, '')
-    .replace(/^(there('s| is)\s+)/i, '').replace(/^(a|an|the|my)\s+/i, '')
-    .replace(/\s+(on|at|for|this|next|the)\s*$/i, '').replace(/\s+(on|at|for)\s*$/i, '').replace(/[.,!?\s]+$/, '').trim();
-  if (!title) title = 'Plan';
-  title = title.charAt(0).toUpperCase() + title.slice(1);
-  const ev = addEvent({ date, title, time }); jumpTo(ev.date);
-  return `Added "${ev.title}" on ${longDate(ev.date)}${ev.time ? ' at ' + fmtTime(ev.time) : ''}.`;
+
+  // 5. questions: what's on / when is
+  const isQuestion = /\?\s*$/.test(raw) || /^(what|what's|whats|when|when's|do i|did i|am i|any|anything|show|list|tell me|is there|how many|which)\b/i.test(lower) || /(뭐|무슨|언제|있어\?|있나|있니|알려|보여)/.test(raw);
+  if (isQuestion) {
+    const when = raw.match(/^(?:when(?:'s| is| do i have| am i| was)?)\s+(.+?)\??$/i) || raw.match(/^(.+?)\s*(?:언제야|언제지|언제였지|언제|일정 언제)/);
+    if (when && !takeDate(raw).date && !rangeFor(raw)) {
+      const { match } = findPlan(when[1], null);
+      return match ? T(`"${match.title}" is on ${whenText(match)}.`, `${eun(match.title)} ${whenText(match, true)}에 있어요.`) : T("I couldn't find that plan.", '그 일정을 못 찾았어요.');
+    }
+    const r = rangeFor(raw); let from, to, label;
+    if (r) { [from, to] = r; label = T(r[2], r[3]); }
+    else { const { date } = takeDate(raw); if (date) { from = to = date; label = fmtShort(date, ko); } else { from = TODAY; to = isoD(addDays(today0(), 7)); label = T('the next 7 days', '앞으로 7일'); } }
+    const evs = state.events.filter(e => e.date >= from && e.date <= to);
+    if (!evs.length) return T(`Nothing planned for ${label}.`, `${label}에는 일정이 없어요.`);
+    return T(`Here's ${label}:\n`, `${label} 일정:\n`) + listText(evs, ko);
+  }
+
+  // 6. add a plan (one-off or repeating)
+  const d = takeDate(raw);
+  if (!d.date) return T("I couldn't spot a date in that. Try \"dinner with Mina on 12/5 at 7pm\" or \"gym every Monday\".", '날짜를 못 찾았어요. "12월 5일 저녁 7시 민아랑 저녁"이나 "매주 월요일 헬스"처럼 말해 주세요.');
+  const tt = takeTime(d.rest);
+  const title = cleanTitle(tt.rest) || T('Plan', '일정');
+  if (d.every != null) {
+    const last = d.until || isoD(addDays(parseISO(d.date), 7 * 11));
+    const end = [YEARS[YEARS.length - 1], 11, 31].join('-');
+    let k = d.date, n = 0;
+    while (k <= last && k <= `${YEARS[YEARS.length - 1]}-12-31` && n < 60) { addEvent({ date: k, title, time: tt.time }); n++; k = isoD(addDays(parseISO(k), 7)); }
+    jumpTo(d.date);
+    return T(`Added "${title}" every ${DOW[d.every][0].toUpperCase() + DOW[d.every].slice(1)}${tt.time ? ' at ' + fmtTime(tt.time) : ''} — ${n} weeks, ${fmtShort(d.date)} to ${fmtShort(isoD(addDays(parseISO(d.date), 7 * (n - 1))))}.${d.until ? '' : ' Say "until 2/28" to change how long.'}`,
+             `매주 ${KDOW[d.every]}요일 "${title}"${tt.time ? ' ' + fmtTimeKo(tt.time) : ''} 일정을 ${n}주 동안 추가했어요 (${fmtShort(d.date, true)} ~ ${fmtShort(isoD(addDays(parseISO(d.date), 7 * (n - 1))), true)}).`);
+  }
+  const dup = state.events.find(e => e.date === d.date && e.title.toLowerCase() === title.toLowerCase() && (e.time || '') === (tt.time || ''));
+  if (dup) return T(`"${dup.title}" is already on ${whenText(dup)}.`, `${eun(dup.title)} 이미 ${whenText(dup, true)}에 있어요.`);
+  const ev = addEvent({ date: d.date, title, time: tt.time }); jumpTo(ev.date);
+  return T(`Added "${ev.title}" on ${longDate(ev.date)}${ev.time ? ' at ' + fmtTime(ev.time) : ''}.`, `${whenText(ev, true)}에 "${ev.title}" 일정을 추가했어요.`);
 }
 
 /* ---------- GitHub Gist sync (same method as myPlanner) ----------
@@ -864,6 +1024,7 @@ if (!IN_CLAUDE) {
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; updateInstallBtn(); });
   addEventListener('appinstalled', () => { installEvt = null; toast('Installed'); updateInstallBtn(); });
   updateInstallBtn();
+  $('#aiStatus').textContent = 'offline helper · English & 한국어';
   // a setup link opened on this device: store the token, then clean it out of the address bar
   const sm = /^#sync=([\w-]+)/.exec(location.hash);
   if (sm) { try { const o = JSON.parse(b64d(sm[1])); if (o.t) { cfg = { token: o.t, gist: o.g || null }; saveCfg(); setTimeout(() => toast('Sync set up on this device'), 600); } } catch (e) {} history.replaceState(null, '', location.pathname + '#month'); }
